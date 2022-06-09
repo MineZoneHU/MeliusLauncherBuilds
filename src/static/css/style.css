@@ -1,0 +1,34 @@
+@import url('./fonts.css');
+
+* {
+    font-family: 'Inter', sans-serif;
+}
+
+body {
+    min-width: 100vw;
+    min-height: 100vh;
+    color: #eee;
+    background-color: #0e171e;
+    overflow: hidden;
+    margin: 0;
+    user-select: none;
+}
+
+#close-btn {
+    cursor: pointer;
+    position: fixed;
+    top: 50px;
+    right: 50px;
+    padding: 25px;
+    transform: translate(50%, -50%);
+    user-select: none;
+    -webkit-app-region: none;
+}
+
+#close-btn > svg {
+    width: 24px;
+}
+
+#close-btn > svg > path {
+    fill: white;
+}

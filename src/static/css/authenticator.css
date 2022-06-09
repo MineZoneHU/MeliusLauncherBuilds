@@ -1,0 +1,88 @@
+body {
+    background-color: black;
+    background-image: url('../img/authenticator/bg.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+#login-box {
+    border-radius: 10px;
+    background-color: rgba(39, 39, 39, 0.8);
+    backdrop-filter: blur(1.5px);
+    -webkit-backdrop-filter: blur(1.5px);
+    height: fit-content;
+    width: 25em;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    -webkit-transform: translate(-50%, -50%);
+    transform: translate(-50%, -50%);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-app-region: none;
+}
+
+#logo {
+    width: 128px;
+}
+
+#title {
+    font-weight: 700;
+}
+
+#line {
+    background: linear-gradient(45deg, #8A2387, #E94057, #F27121);
+    height: 4px;
+    width: 8rem;
+    border-radius: 3px;
+}
+
+#username-input,
+#password-input {
+    background-color: rgba(67, 67, 67, 0.5);
+    padding: .5rem 1rem;
+    border: none;
+    color: #fff;
+    width: 100%;
+    border-bottom: 2px solid transparent;
+    transition: .3s ease-in-out;
+}
+
+#username-input:focus,
+#password-input:focus {
+    outline: none;
+    border-bottom: 2px solid #ff3b44;
+}
+
+#username-input::placeholder,
+#password-input::placeholder {
+    color: rgb(190, 190, 190);
+}
+
+#login-btn {
+    height: 50px;
+    background: linear-gradient(-25deg, #8A2387, #E94057, #F27121);
+    background-size: 175%;
+    background-position: left;
+    font-weight: 700;
+    border: none;
+    outline: none;
+    transition: .3s ease-in-out;
+    border-radius: 3px;
+}
+
+#login-btn:hover {
+    background-position: right;
+}
+
+#login-btn:focus {
+    outline: none;
+}
+
+a, a:hover, a:visited, a:focus {
+    color: #E94057;
+    text-decoration: none;
+}

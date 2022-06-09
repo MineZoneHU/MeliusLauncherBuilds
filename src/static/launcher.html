@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, minimum-scale=1.0, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+        <link rel="stylesheet" href="./css/bootstrap.css">
+        <link rel="stylesheet" href="./css/style.css">
+        <link rel="stylesheet" href="./css/launcher.css">
+        <title>MineZone</title>
+    </head>
+    <body>
+        <div id="close-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4096 4096">
+                <path d="M4556.3,4306.8l-1746.8-1747L4555.8,813.2a176.4,176.4,0,0,0,0-249.5h0a176.4,176.4,0,0,0-249.5,0L2560,2310.2,813.7,563.8a176.4,176.4,0,0,0-249.5,0h0a176.4,176.4,0,0,0,0,249.5L2310.4,2559.8,563.7,4306.7a176.4,176.4,0,0,0,0,249.5h0a176.4,176.4,0,0,0,249.5,0L2560,2809.3l1746.8,1747a176.4,176.4,0,0,0,249.5,0h0A176.4,176.4,0,0,0,4556.3,4306.8Z" transform="translate(-512 -512)"/>
+            </svg>
+        </div>
+        <div id="sidebar-box">
+            <div id="logo-wrapper">
+                <img id="logo" src="./img/logo.png">
+            </div>
+            <div class="sidebar-option" data-action="switch-screen" data-action-target-screen="launch">
+                <div class="sidebar-option-icon-bg">
+                    <div class="sidebar-option-icon-wrapper">
+                        <i class="sidebar-option-icon fa fa-fw fa-play"></i>
+                    </div>
+                </div>
+                <div class="sidebar-option-label">
+                    Játék
+                </div>
+            </div>
+            <div class="sidebar-option" data-action="switch-screen" data-action-target-screen="settings">
+                <div class="sidebar-option-icon-bg">
+                    <div class="sidebar-option-icon-wrapper">
+                        <i class="sidebar-option-icon fa fa-fw fa-cog"></i>
+                    </div>
+                </div>
+                <div class="sidebar-option-label">
+                    Beállítások
+                </div>
+            </div>
+            <div id="sidebar-bottom-options-wrapper">
+                <div class="sidebar-option" data-action="logout">
+                    <div class="sidebar-option-icon-bg">
+                        <div class="sidebar-option-icon-wrapper">
+                            <i class="sidebar-option-icon fa fa-fw fa-sign-out"></i>
+                        </div>
+                    </div>
+                    <div class="sidebar-option-label">
+                        Kijelentkezés
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- <div id="online-count-wrapper">
+            <div id="online-count-icon-bg">
+                <div id="online-count-icon-wrapper">
+                    <i class="fa fa-fw fa-users"></i>
+                </div>
+            </div>
+            <div id="online-count-label-wrapper">
+                <b>0</b> online játékos
+            </div>
+        </div> -->
+        <div id="profile-wrapper">
+            <div id="profile-icon-wrapper">
+                <img src="./img/launcher/steve.png" id="profile-icon">
+            </div>
+            <div id="profile-label-wrapper">
+                -
+            </div>
+        </div>
+        <div id="screen-wrapper">
+            <div id="launch-screen" class="screen active">
+                <div id="launch-box">
+                    <div id="launch-box-design-flame-wrapper">
+                        <img id="launch-box-design-flame" src="./img/launcher/flame.png">
+                    </div>
+                    <div id="launch-box-design-strider-wrapper">
+                        <img id="launch-box-design-strider" src="./img/launcher/strider.png">
+                    </div>
+                    <div id="launch-btn" data-action="launch-game">
+                        <div id="launch-btn-label">
+                            <div id="launch-btn-label-icon">
+                                <i class="fa fa-fw fa-play"></i>
+                            </div>
+                            Játék indítása
+                        </div>
+                    </div>
+                </div>
+                <div id="launch-box-design-dog-wrapper">
+                    <img id="launch-box-design-dog" src="./img/launcher/dog.png">
+                </div>
+            </div>
+            <div id="settings-screen" class="screen">
+                <div id="settings-box">
+                    <div id="settings-box-title">
+                        Beállítások
+                    </div>
+                    <div id="settings-box-subtitle">
+                        Ha személyre szeretnéd szabni a Launcher vagy Kliens beállításait, itt megteheted.
+                    </div>
+                    <div id="settings-options-wrapper">
+                        <div id="memory-setting-label">Memória mérete</div>
+                        <div id="memory-setting-slider-wrapper">
+                            <div id="memory-setting-slider-border">
+                                <input id="memory-setting-slider" type="range" min="0" max="0" value="0" step="512"/>
+                            </div>
+                            <div id="memory-setting-slider-value-label">
+                                0 MiB
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <script src="./js/index.js"></script>
+        <script src="./js/launcher.js"></script>
+    </body>
+</html>

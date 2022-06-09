@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "module": "CommonJS",
+        "moduleResolution": "Node",
+        "outDir": "build/",
+        "types": [
+            "node",
+            "electron"
+        ],
+        "incremental": true
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules/",
+        "src/lib/LicenseManager.ts" // DEV: not required for production release
+    ]
+}

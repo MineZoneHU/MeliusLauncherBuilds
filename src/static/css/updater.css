@@ -1,0 +1,52 @@
+body {
+    background-color: black;
+    background-image: url('../img/updater/bg.png');
+    background-size: cover;
+    background-repeat: no-repeat;
+    backdrop-filter: brightness(0.6);
+    -webkit-backdrop-filter: brightness(0.6);
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+#center-box {
+    width: 30em;
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#logo {
+    width: 192px;
+}
+
+#title-wrapper {
+    width: 100%;
+    height: 38px;
+}
+
+#title {
+    position: relative;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    font-weight: 700;
+}
+
+#progress-bar-wrapper {
+    height: 12px;
+    border-radius: 100px;
+    border: 2px solid white;
+    box-sizing: border-box;
+}
+
+#progress-bar {
+    position: relative;
+    top: -2px;
+    left: -2px;
+    height: 12px;
+    border-radius: 100px;
+    transition: .25s width ease-out;
+}

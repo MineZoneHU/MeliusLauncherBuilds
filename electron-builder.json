@@ -1,0 +1,68 @@
+{
+    "$schema": "./electron-builder.schema.json",
+    "productName": "MineZone",
+    "appId": "hu.minezone.client",
+    "artifactName": "minezone-${version}-${platform}-${arch}.${ext}",
+    "directories": {
+        "app": "./build/",
+        "output": "./dist/"
+    },
+    "publish": [{
+        "provider": "generic",
+        "url": "localhost"
+    }],
+    "nsis": {
+        "allowToChangeInstallationDirectory": true,
+        "oneClick": false,
+        "installerSidebar": "./build/static/img/installer-bg.bmp",
+        "installerIcon": "./build/static/img/icon.ico",
+        "uninstallerSidebar": "./build/static/img/installer-bg.bmp",
+        "uninstallerIcon": "./build/static/img/icon.ico",
+        "installerLanguages": [
+            "hu"
+        ]
+    },
+    "win": {
+        "icon": "./build/static/img/icon.ico",
+        "target": [
+            {
+                "target": "nsis",
+                "arch": [
+                    "ia32",
+                    "x64",
+                    "arm64"
+                ]
+            }
+        ],
+        "verifyUpdateCodeSignature": false
+    },
+    "mac": {
+        "category": "public.app-category.games",
+        "icon": "./build/static/img/icon.icns",
+        "target": [
+            {
+                "target": "dmg",
+                "arch": [
+                    "x64",
+                    "arm64"
+                ]
+            }
+        ],
+        "forceCodeSigning": true,
+        "cscLink": "./mac_signing.p12"
+    },
+    "linux": {
+        "category": "Game",
+        "icon": "./build/static/img/icon.icns",
+        "target": [
+            {
+                "target": "AppImage",
+                "arch": [
+                    "ia32",
+                    "x64",
+                    "arm64"
+                ]
+            }
+        ]
+    }
+}

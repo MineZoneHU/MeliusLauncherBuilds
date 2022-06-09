@@ -1,0 +1,44 @@
+{
+  	"name": "melius-launcher",
+  	"version": "2.0.0",
+  	"description": "MineZone Launcher",
+  	"private": true,
+  	"scripts": {
+  	  	"prebuild": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js",
+  	  	"build": "tsc",
+  	  	"postbuild": "node ./buildtools/obfuscateBuild.js && node ./buildtools/minifyBuild.js",
+  	  	"start": "electron ./build/index.js",
+  	  	"predist": "node ./buildtools/purgeDist.js",
+  	  	"predistWin": "npm run predist",
+  	  	"predistMac": "npm run predist",
+  	  	"predistinux": "npm run predist",
+  	  	"distWin": "electron-builder --config electron-builder.json -w -p always",
+  	  	"distMac": "electron-builder --config electron-builder.json -m -p always",
+  	  	"distLinux": "electron-builder --config electron-builder.json -l -p always",
+  	  	"inst": "electron-packager ./build/ --out ./dist/ --all --overwrite"
+  	},
+  	"authors": [
+  	  	"LifeGamer <lifegamer.hu@gmail.com>",
+  	  	"Adrián Asztrik <adiihsub@gmail.com> (adiih.eu)"
+  	],
+  	"license": "ISC",
+  	"devDependencies": {
+  	  	"@types/electron": "^1.6.10",
+  	  	"@types/node": "^17.0.5",
+  	  	"@types/ws": "^8.5.3",
+  	  	"@typescript-eslint/eslint-plugin": "^5.26.0",
+  	  	"@typescript-eslint/parser": "^5.26.0",
+  	  	"csso": "^5.0.2",
+  	  	"electron": "^18.2.4",
+  	  	"electron-builder": "^23.0.3",
+  	  	"electron-log": "^4.4.4",
+  	  	"electron-packager": "^15.4.0",
+  	  	"eslint": "^8.16.0",
+  	  	"html-minifier": "^4.0.0",
+  	  	"javascript-obfuscator": "^3.0.0"
+  	},
+  	"dependencies": {
+  	  	"electron-updater": "^4.6.1",
+  	  	"ws": "^8.5.0"
+  	}
+}

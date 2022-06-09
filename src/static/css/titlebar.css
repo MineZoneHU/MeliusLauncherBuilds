@@ -1,0 +1,25 @@
+#titlebar {
+    display: block;
+    width: 100vw;
+    height: 32px;
+    background-color: #00000060;
+    position: fixed;
+    top: 0;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-app-region: drag;
+}
+
+#titlebar-title {
+    text-align: center;
+    font-size: smaller;
+    position: relative;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#titlebar-buttons-wrapper {
+    display: table;
+    float: left;
+}
