@@ -207,6 +207,12 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		});
 
+		clientSocket.on('close', () => {
+
+			clientConnected = false;
+
+		});
+
 	});
 
 	const websocketServerURI = `ws://localhost:${(websocketServer.address() as WebSocket.AddressInfo).port}`;
@@ -218,7 +224,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		`-Djava.library.path=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'lib/'))}`,
 		`-Dorg.lwjgl.librarypath=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'lib/'))}`,
 		'-DFabricMcEmu=net.minecraft.client.main.Main',
-		'-Dminecraft.launcher.brand=melius',
+		'-Dminecraft.launcher.brand=melius-launcher',
 		`-Dminecraft.launcher.version=${ElectronUpdater.autoUpdater.currentVersion.version}`,
 		`-Dminecraft.client.jar=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'client.jar'))}`,
 		'-Dlog4j2.formatMsgNoLookups=true',
@@ -277,7 +283,8 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 			cwd: process.env.GAME_FOLDER,
 			env: clientProcessEnvironment,
 			shell: true,
-			detached: true
+			detached: true,
+			stdio: 'ignore'
 		}
 	);
 

@@ -3,10 +3,11 @@ import * as os from 'os';
 import * as path from 'path';
 import * as Debug from './Debug';
 import * as Encrypter from './Encrypter';
+import * as CLIArgsParser from './CLIArgsParser';
 
 const DEFAULT_CONFIG = {
 
-	'developerMode': true,
+	'developerMode': CLIArgsParser.hasOption('developer-mode'),
 
 	'performance.purgeThreads': 32,
 	'performance.smallDownloadThreads': 32,
@@ -29,6 +30,7 @@ export const loadConfig = () => new Promise<void>((resolve, reject) => {
 		config = {};
 
 		saveConfig().then(resolve).catch(reject);
+
 		return;
 
 	}
@@ -51,6 +53,7 @@ export const loadConfig = () => new Promise<void>((resolve, reject) => {
 	});
 
 	return;
+	
 });
 
 const saveConfig = () => new Promise<void>((resolve, reject) => {

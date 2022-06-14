@@ -5,35 +5,37 @@ import * as https from 'https';
 import * as url from 'url';
 import * as zlib from 'zlib';
 import * as stream from 'stream';
-import * as ElectronUpdater from 'electron-updater';
 import { RequestOptions } from './RequestOptions';
 import { RequestStreamResponse } from './RequestStreamResponse';
 import { RequestBufferResponse } from './RequestBufferResponse';
 
-const DEFAULT_USER_AGENT = `MeliusLauncher / ${ElectronUpdater.autoUpdater.currentVersion.version}`;
+let defaultUserAgent = 'MeliusLauncher / unknown';
+
+export const setLauncherVersion = (version : string) => defaultUserAgent = `MeliusLauncher / ${version}`;
+
 const DEFAULT_MAX_REDIRECT_COUNT = 3;
 
 https.globalAgent.options.cert = fs.readFileSync(path.resolve(__dirname, '../', 'etc/', 'minezone.hu.pem'));
 https.globalAgent.options.key = fs.readFileSync(path.resolve(__dirname, '../', 'etc/', 'minezone.hu.key'));
 
 const _request = (urlStr : string, options : (http.RequestOptions | https.RequestOptions) & RequestOptions, redirectCount : number) => new Promise<RequestStreamResponse | RequestBufferResponse>((resolve, reject) => {
-    
+
 	const parsedURL = new url.URL(urlStr);
 
 	if(options === undefined) {
 		options = {
 			method: 'GET',
 			headers: {
-				'User-Agent': DEFAULT_USER_AGENT
+				'User-Agent': defaultUserAgent
 			}
 		};
 	}
 	else {
 		if(options.method === undefined) options.method = 'GET';
 		if(options.headers === undefined) options.headers = {
-			'User-Agent': DEFAULT_USER_AGENT
+			'User-Agent': defaultUserAgent
 		};
-		else if(options.headers['User-Agent'] === undefined) options.headers['User-Agent'] = DEFAULT_USER_AGENT;
+		else if(options.headers['User-Agent'] === undefined) options.headers['User-Agent'] = defaultUserAgent;
 	}
 
 	if(options.compression === true) {

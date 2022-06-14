@@ -2,12 +2,14 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as stream from 'stream';
+import * as worker_threads from 'worker_threads';
 import * as Electron from 'electron';
 import * as ElectronUpdater from 'electron-updater';
 import * as Debug from './Debug';
 import * as Request from './Request';
 import * as Hasher from './Hasher';
 import * as Config from './Config';
+import * as Utils from './Utils';
 import { GameFilesIndex } from './GameFilesIndex';
 import { ComparedGameFilesIndexes } from './ComparedGameFilesIndexes';
 
@@ -23,47 +25,6 @@ ElectronUpdater.autoUpdater.setFeedURL({
 	repo: 'MeliusLauncherBuilds'
 });
 ElectronUpdater.autoUpdater.autoDownload = false;
-
-const byteUnits = [{
-	suffix: 'B',
-	divisor: 1
-}, {
-	suffix: 'KB',
-	divisor: 1_000
-}, {
-	suffix: 'MB',
-	divisor: 1_000_000
-}, {
-	suffix: 'GB',
-	divisor: 1_000_000_000
-}, {
-	suffix: 'TB',
-	divisor: 1_000_000_000_000
-}, {
-	suffix: 'PB',
-	divisor: 1_000_000_000_000_000
-}];
-
-const bytesToHuman = (bytes : number, decimalPrecision = 0) => {
-
-	let unit = byteUnits[0];
-
-	for(let i = 0; i < byteUnits.length; i++) {
-		if(byteUnits[i].divisor < bytes) continue;
-		if(i > 0) unit = byteUnits[i - 1];
-		break;
-	}
-
-	return `${(bytes / unit.divisor).toFixed(decimalPrecision)} ${unit.suffix}`;
-
-};
-
-const isSubpath = (parentPath : string, subPath : string) : boolean => {
-	const relativePath = path.relative(parentPath, subPath);
-	return relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
-};
-
-const isGameFile = (path : string) => isSubpath(process.env.GAME_FOLDER, path);
 
 export const collectFiles = (dirPath : string) : string[] => {
 
@@ -86,7 +47,6 @@ const collectGameFiles = () => new Promise<string[]>((resolve, reject) => {
 		path.resolve(process.env.GAME_FOLDER, 'config.bin'),
 		path.resolve(process.env.GAME_FOLDER, 'debug.log'),
 		path.resolve(process.env.GAME_FOLDER, 'encryption_key.bin'),
-		path.resolve(process.env.GAME_FOLDER, 'license.bin'),
 		path.resolve(process.env.GAME_FOLDER, 'options.txt'),
 		path.resolve(process.env.GAME_FOLDER, 'optionsof.txt'),
 		path.resolve(process.env.GAME_FOLDER, 'optionsshaders.txt'),
@@ -102,6 +62,7 @@ const collectGameFiles = () => new Promise<string[]>((resolve, reject) => {
 		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'resourcepacks')),
 		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'resources')),
 		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'saves')),
+		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'screenshots')),
 		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'server-resource-packs')),
 		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'shaderpacks'))
 	]);
@@ -116,7 +77,7 @@ const createGameFilesIndex = (gameFiles : string[]) => new Promise<GameFilesInde
     
 	const gameFilesIndex : GameFilesIndex = {};
 
-	const checksumQueue = gameFiles.filter(isGameFile);
+	const checksumQueue = gameFiles;
 
 	if(checksumQueue.length === 0) {
 
@@ -179,10 +140,15 @@ const fetchLatestGameFilesIndex = () => new Promise<GameFilesIndex>(async (resol
 	do {
 
 		await Request.request(`${CLIENT_CDN_URL}/${os.platform()}/${os.arch()}/index.json`).then(res => {
+
 			fetchedSuccessfully = true;
+
 			resolve(JSON.parse(res.body.toString('utf8')));
+
 		}).catch(err => {
+
 			Debug.log('Updater', `[Error] An error occured while fetching the latest game files index: ${err}`);
+
 		});
 
 	} while(!fetchedSuccessfully);
@@ -241,7 +207,7 @@ const purgeExtraAndMismatchingGameFiles = (comparedGameFilesIndexes : ComparedGa
 	const purgeQueue = [
 		...Object.keys(comparedGameFilesIndexes.extra).map(key => path.resolve(process.env.GAME_FOLDER, '.' + key)),
 		...Object.keys(comparedGameFilesIndexes.mismatching).map(key => path.resolve(process.env.GAME_FOLDER, '.' + key))
-	].filter(isGameFile);
+	];
 
 	let purgeQueueLength = purgeQueue.length;
 
@@ -257,9 +223,17 @@ const purgeExtraAndMismatchingGameFiles = (comparedGameFilesIndexes : ComparedGa
 	const purgeTask = () => {
 
 		if(purgeQueueLength === 0) {
+
 			runningTasks--;
-			if(runningTasks === 0) resolve();
+
+			if(runningTasks === 0) {
+				
+				resolve();
+			
+			}
+
 			return;
+
 		}
 
 		const next = purgeQueue.shift();
@@ -332,14 +306,14 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 	}
 
-	const humanTotalSize = bytesToHuman(totalSize, 2);
+	const humanTotalSize = Utils.bytesToHuman(totalSize, 2);
 
 	let downloadedCount = 0;
 	let downloadedSize = 0;
     
 	const progressReportTask = setInterval(() => {
 
-		Debug.log('Updater', `Downloading missing game files (${downloadedCount} of ${totalCount} / ${bytesToHuman(downloadedSize, 2)} of ${humanTotalSize} / ${(downloadedSize / totalSize * 100).toFixed(2)}%)...`);
+		Debug.log('Updater', `Downloading missing game files (${downloadedCount} of ${totalCount} / ${Utils.bytesToHuman(downloadedSize, 2)} of ${humanTotalSize} / ${(downloadedSize / totalSize * 100).toFixed(2)}%)...`);
     
 	}, 5000);
 
@@ -362,184 +336,114 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 	downloadQueueKeys = downloadQueueKeys.sort((a, b) => downloadQueueData[a].size - downloadQueueData[b].size);
 
-	let workingTaskCount = 0;
+	let smallQueueEnd = 0;
+
+	for(let i = 0; i < downloadQueueKeys.length - 1; i++) {
+
+		if(downloadQueueData[downloadQueueKeys[i + 1]].size < 4_000_000) continue;
+
+		smallQueueEnd = i;
+		break;
+
+	}
+
 	let isDownloading = true;
 
 	const updateFrontendProgress = () => {
 
 		if(!isDownloading) return;
 
-		updaterWindow.webContents.send('status-label-update', `Játékfájlok letöltése...</br>(${bytesToHuman(downloadedSize, 2)} / ${humanTotalSize} <i class="fa-solid fa-minus mx-1"></i> ${bytesToHuman(speedMeterSpeed, 2)}/s)`);
+		updaterWindow.webContents.send('status-label-update', `Játékfájlok letöltése...</br>(${Utils.bytesToHuman(downloadedSize, 2)} / ${humanTotalSize} <i class="fa-solid fa-minus mx-1"></i> ${Utils.bytesToHuman(speedMeterSpeed, 2)}/s)`);
 		updaterWindow.webContents.send('status-progress-update', 100 * downloadedSize / totalSize);
 		updaterWindow.setProgressBar(downloadedSize / totalSize);
 
 	};
 
-	const downloadTask = (isLargeTask : boolean) => {
+	const smallDownloadThreadCount = Config.get('performance.smallDownloadThreads') as number;
+	const largeDownloadThreadCount = Config.get('performance.largeDownloadThreads') as number;
 
-		if(downloadQueueKeys.length === 0) {
+	const downloadTaskQueues = [
+		...Utils.divideArray(downloadQueueKeys.slice(0, smallQueueEnd), smallDownloadThreadCount),
+		...Utils.divideArray(downloadQueueKeys.slice(smallQueueEnd), largeDownloadThreadCount)
+	];
 
-			workingTaskCount--;
+	const downloaderTaskPath = path.resolve(__dirname, 'UpdaterDownloadThread.js');
 
-			if(workingTaskCount === 0) {
+	const taskCount = downloadTaskQueues.length;
 
-				isDownloading = false;
-	
-				clearInterval(progressReportTask);
-				clearInterval(speedMeterResetTask);
-		
-				resolve();
+	const runningTasks = new Set<number>(Array.from({ length: taskCount }, (_, i) => i));
 
-			}
+	const resolverTask = () => {
 
-			return;
- 
-		}
+		if(runningTasks.size > 0) {
 
-		let next;
-
-		if(isLargeTask) next = downloadQueueKeys.pop();
-		else next = downloadQueueKeys.shift();
-
-		const nextPath = path.resolve(process.env.GAME_FOLDER, `./${next}`);
-
-		if(!isGameFile(nextPath)) {
-
-			Debug.log('Updater', `[Warn] Skipping non-game file ${next}`);
-
-			setImmediate(downloadTask, isLargeTask);
+			setTimeout(resolverTask, 500);
 
 			return;
 
 		}
 
-		let currDownloadedSize = 0;
-		
-		Request.request(`${CLIENT_CDN_URL}/${os.platform()}/${os.arch()}/${next}`, {
-			method: 'GET',
-			onDownloadProgress: downloadProgressInfo => {
+		isDownloading = false;
 
-				downloadedSize += downloadProgressInfo.downloadedBytes - currDownloadedSize;
-				speedMeterDatas[speedMeterDatas.length - 1] += downloadProgressInfo.downloadedBytes - currDownloadedSize;
+		clearInterval(progressReportTask);
+		clearInterval(speedMeterResetTask);
 
-				currDownloadedSize = downloadProgressInfo.downloadedBytes;
-
-				updateFrontendProgress();
-
-			},
-			stream: true
-		}).then(res => {
-
-			if(res.head.statusCode !== 200) {
-
-				(res.body as stream.Readable).destroy();
-
-				Debug.log('Updater', `[Error] Redownloading ${next} (got statusCode ${res.head.statusCode})`);
-
-				downloadedSize -= currDownloadedSize;
-
-				if(isLargeTask) downloadQueueKeys.push(next);
-				else downloadQueueKeys.unshift(next);
-
-				setImmediate(downloadTask, isLargeTask);
-
-				return;
-
-			}
-
-			fs.mkdirSync(path.dirname(nextPath), {
-				recursive: true,
-				mode: 0o700
-			});
-
-			const bodyStream = res.body as stream.Readable;
-			const writeStream = fs.createWriteStream(nextPath, {
-				mode: 0o700
-			});
-
-			bodyStream.on('error', err => {
-
-				bodyStream.destroy();
-				writeStream.close();
-
-				Debug.log('Updater', `[Error] An error occured while saving ${next}: ${err}`);
-
-				downloadedSize -= currDownloadedSize;
-
-				updateFrontendProgress();
-	
-				if(isLargeTask) downloadQueueKeys.push(next);
-				else downloadQueueKeys.unshift(next);
-	
-				setImmediate(downloadTask, isLargeTask);
-
-			});
-
-			writeStream.on('error', err => {
-
-				bodyStream.destroy();
-				writeStream.close();
-
-				Debug.log('Updater', `[Error] An error occured while saving ${next}: ${err}`);
-
-				downloadedSize -= currDownloadedSize;
-
-				updateFrontendProgress();
-	
-				if(isLargeTask) downloadQueueKeys.push(next);
-				else downloadQueueKeys.unshift(next);
-	
-				setImmediate(downloadTask, isLargeTask);
-
-			});
-
-			bodyStream.on('data', dataChunk => {
-
-				writeStream.write(dataChunk);
-
-			});
-
-			bodyStream.on('close', () => {
-
-				writeStream.close();
-
-				downloadedCount++;
-	
-				setImmediate(downloadTask, isLargeTask);
-
-			});
-
-		}).catch(err => {
-
-			Debug.log('Updater', `[Error] An error occured while downloading ${next}: ${err}`);
-
-			downloadedSize -= currDownloadedSize;
-
-			updateFrontendProgress();
-
-			if(isLargeTask) downloadQueueKeys.push(next);
-			else downloadQueueKeys.unshift(next);
-
-			setImmediate(downloadTask, isLargeTask);
-
-		});
+		resolve();
 
 	};
 
-	const largeDownloadThreadCount = Config.get('performance.largeDownloadThreads') as number;
-	const smallDownloadThreadCount = Config.get('performance.smallDownloadThreads') as number;
+	setImmediate(resolverTask);
 
-	for(let i = 0; i < Math.min(totalCount, largeDownloadThreadCount); i++) {
-		
-		workingTaskCount++;
-		setImmediate(downloadTask, true);
+	for(let i = 0; i < taskCount; i++) {
 
-	}
+		const downloaderTask = new worker_threads.Worker(downloaderTaskPath, {
+			workerData: {
+				launcherVersion: ElectronUpdater.autoUpdater.currentVersion.version,
+				clientCdnURL: CLIENT_CDN_URL,
+				gameFolder: process.env.GAME_FOLDER,
+				queueKeys: downloadTaskQueues[i]
+			}
+		});
 
-	for(let i = 0; i < Math.min(totalCount - largeDownloadThreadCount, smallDownloadThreadCount); i++) {
-		
-		workingTaskCount++;
-		setImmediate(downloadTask, false);
+		downloaderTask.on('exit', () => {
+
+			runningTasks.delete(i);
+
+		});
+
+		downloaderTask.on('message', (message) => {
+
+			switch(message.id) {
+
+				case 'error': {
+
+					Debug.log('Updater', `[Error] ${message.message}`);
+
+					break;
+
+				}
+
+				case 'downloadProgress': {
+
+					downloadedSize += message.bytes;
+					updateFrontendProgress();
+
+					if(message.bytes > 0) speedMeterDatas[speedMeterDatas.length - 1] += message.bytes;
+					
+					break;
+
+				}
+
+				case 'downloadedCountIncrement': {
+					
+					downloadedCount++;
+					break;
+				
+				}
+
+			}
+
+		});
 
 	}
 
@@ -595,6 +499,8 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 
 	updaterWindow.once('show', async () => {
 
+		Request.setLauncherVersion(ElectronUpdater.autoUpdater.currentVersion.version);
+
 		Debug.log('Updater', 'Searching for launcher updates...');
 
 		updaterWindow.webContents.send('status-label-update', 'Launcher-frissítések keresése...');
@@ -610,6 +516,7 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 			if(!['darwin', 'win32'].includes(os.platform())) {
 
 				Electron.dialog.showErrorBox('Frissítés', 'A Launcher elavult, kérlek, frissítsd!');
+
 				Electron.app.exit(1);
 				process.exit(1);
 
@@ -631,11 +538,11 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 
 					lastProgressReport = Date.now();
 
-					Debug.log('Updater', `Downloading the launcher update (${bytesToHuman(progressInfo.transferred)} of ${bytesToHuman(progressInfo.total)} / ${(progressInfo.transferred / progressInfo.total * 100).toFixed(2)}%)...`);
+					Debug.log('Updater', `Downloading the launcher update (${Utils.bytesToHuman(progressInfo.transferred)} of ${Utils.bytesToHuman(progressInfo.total)} / ${(progressInfo.transferred / progressInfo.total * 100).toFixed(2)}%)...`);
 				
 				}
     
-				updaterWindow.webContents.send('status-label-update', `Launcher frissítése...<br/>(${bytesToHuman(progressInfo.transferred, 2)} / ${bytesToHuman(progressInfo.total, 2)} <i class="fa-solid fa-minus mx-1"></i> ${bytesToHuman(progressInfo.bytesPerSecond, 2)}/s)`);
+				updaterWindow.webContents.send('status-label-update', `Launcher frissítése...<br/>(${Utils.bytesToHuman(progressInfo.transferred, 2)} / ${Utils.bytesToHuman(progressInfo.total, 2)} <i class="fa-solid fa-minus mx-1"></i> ${Utils.bytesToHuman(progressInfo.bytesPerSecond, 2)}/s)`);
 				updaterWindow.webContents.send('status-progress-update', progressInfo.transferred / progressInfo.total * 100);
 				updaterWindow.setProgressBar(progressInfo.transferred / progressInfo.total);
 

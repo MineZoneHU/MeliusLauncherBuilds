@@ -12,6 +12,7 @@ import * as Config from './lib/Config';
 import * as Updater from './lib/Updater';
 import * as Authenticator from './lib/Authenticator';
 import * as Launcher from './lib/Launcher';
+import * as Utils from './lib/Utils';
 
 const supportedPlatformsAndArchitectures = {
 	darwin: [ 'x64', 'arm64' ],
@@ -30,7 +31,7 @@ if(supportedPlatformsAndArchitectures[os.platform()] === undefined || !supported
 
 if(!Electron.app.requestSingleInstanceLock()) {
 	
-	Electron.dialog.showErrorBox('Már fut a Launcher', 'Egyszerre csak egy Launcher futhat.');
+	Electron.dialog.showErrorBox('Hiba', 'Már fut a Launcher.');
 
 	Electron.app.exit(1);
 	process.exit(1);
@@ -46,6 +47,11 @@ Electron.app.once('ready', async () => {
 		await Folders.initFolders();
 
 		await Debug.init();
+		Debug.log('Main', 'System information:');
+		Debug.log('Main', ` - Platform: ${os.platform()}`);
+		Debug.log('Main', ` - Architecture: ${os.arch()}`);
+		Debug.log('Main', ` - Total memory: ${Utils.bytesToHuman(os.totalmem())} (${os.totalmem()} B)`);
+		Debug.log('Main', ` - CPU core count: ${os.cpus().length}`);
 
 		Debug.log('Main', 'Registering the global shortcuts...');
 		await GlobalShortcuts.registerShortcuts();
@@ -79,7 +85,8 @@ Electron.app.once('ready', async () => {
 	} catch(err) {
 
 		Debug.log('Main', `[Error] ${err}`);
-		Electron.app.quit();
+
+		Electron.app.exit(1);
 		process.exit(1);
 
 	}

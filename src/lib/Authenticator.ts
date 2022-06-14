@@ -236,7 +236,7 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 
 						default: {
 
-							errorDialogContent = 'Ismeretlen eredetű hiba lépett fel!!';
+							errorDialogContent = 'Ismeretlen eredetű hiba lépett fel!';
 							Debug.log('Authenticator', `An unknown error has occured during the authentication. (${authenticationResult})`);
 							break;
 
@@ -256,7 +256,6 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 						case 'MISMATCHING_IP': {
 
 							errorDialogContent = 'Ez a karakter egy másik IP-címre van levédve!';
-							Debug.log('Authenticator', `An internal error has occured during the authentication. (${authenticationResult})`);
 							break;
 
 						}
