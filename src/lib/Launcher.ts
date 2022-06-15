@@ -318,7 +318,13 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	});
 
-	clientProcess.on('error', reject);
+	clientProcess.once('error', err => {
+
+		clientProcess.kill('SIGKILL');
+
+		reject(err);
+		
+	});
 
 });
 
@@ -348,6 +354,12 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 		launcherWindow.focus();
         
 	});
+
+	if(Config.get('settings.clientJVMMemory') as number > MAX_ALLOCATABLE_MEMORY) {
+
+		Config.set('settings.clientJVMMemory', MAX_ALLOCATABLE_MEMORY);
+
+	}
 
 	launcherWindow.once('show', async () => {
 

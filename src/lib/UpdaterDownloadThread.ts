@@ -14,11 +14,13 @@ if(worker_threads.isMainThread) {
 const launcherVersion = worker_threads.workerData.launcherVersion;
 const clientCdnURL = worker_threads.workerData.clientCdnURL;
 const gameFolder = worker_threads.workerData.gameFolder;
-const queueKeys = worker_threads.workerData.queueKeys as string[];
+const queue = worker_threads.workerData.queue as string[];
+
+const USER_AGENT = `MeliusLauncher / ${launcherVersion}`;
 
 const downloadNext = () => {
 
-	const next = queueKeys.shift();
+	const next = queue.shift();
 
 	if(next === undefined) {
 
@@ -33,7 +35,7 @@ const downloadNext = () => {
 	Request.request(`${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`, {
 		method: 'GET',
 		headers: {
-			'User-Agent': `MeliusLauncher / ${launcherVersion}`
+			'User-Agent': USER_AGENT
 		},
 		onDownloadProgress: downloadProgressInfo => {
 
@@ -62,7 +64,7 @@ const downloadNext = () => {
 				bytes: -currDownloadedSize
 			});
 
-			queueKeys.unshift(next);
+			queue.unshift(next);
 
 			setImmediate(downloadNext);
 
@@ -95,7 +97,7 @@ const downloadNext = () => {
 				bytes: -currDownloadedSize
 			});
 
-			queueKeys.unshift(next);
+			queue.unshift(next);
 
 			setImmediate(downloadNext);
 
@@ -116,7 +118,7 @@ const downloadNext = () => {
 				bytes: -currDownloadedSize
 			});
 
-			queueKeys.unshift(next);
+			queue.unshift(next);
 
 			setImmediate(downloadNext);
 
@@ -156,7 +158,7 @@ const downloadNext = () => {
 			bytes: -currDownloadedSize
 		});
 
-		queueKeys.unshift(next);
+		queue.unshift(next);
 
 		setImmediate(downloadNext);
 

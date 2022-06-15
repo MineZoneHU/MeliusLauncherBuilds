@@ -1,19 +1,20 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as stream from 'stream';
 import * as worker_threads from 'worker_threads';
 import * as Electron from 'electron';
 import * as ElectronUpdater from 'electron-updater';
 import * as Debug from './Debug';
 import * as Request from './Request';
-import * as Hasher from './Hasher';
 import * as Config from './Config';
 import * as Utils from './Utils';
 import { GameFilesIndex } from './GameFilesIndex';
 import { ComparedGameFilesIndexes } from './ComparedGameFilesIndexes';
 
 const CLIENT_CDN_URL = 'https://melius-client-cdn.minezone.hu';
+
+const CHECKSUM_THREAD_WORKER_PATH = path.resolve(__dirname, 'UpdaterChecksumThread.js');
+const DOWNLOAD_THREAD_WORKER_PATH = path.resolve(__dirname, 'UpdaterDownloadThread.js');
 
 let updaterWindow : Electron.BrowserWindow;
 
@@ -86,50 +87,76 @@ const createGameFilesIndex = (gameFiles : string[]) => new Promise<GameFilesInde
 
 	}
 
-	let checksumQueueLength = checksumQueue.length;
+	const threadCount = Math.min(gameFiles.length, Config.get('performance.checksumThreads') as number);
 
-	let runningTasks = Math.min(gameFiles.length, Config.get('performance.checksumThreads') as number);
+	const runningThreadIDs = new Set(Array.from({ length: threadCount }, (_, i) => i));
 
-	const calcChecksumTask = () => {
+	const resolverTask = () => {
 
-		if(checksumQueueLength === 0) {
+		if(runningThreadIDs.size > 0) {
 
-			runningTasks--;
-
-			if(runningTasks === 0) {
-
-				resolve(gameFilesIndex);
-
-			}
+			setTimeout(resolverTask, 500);
 
 			return;
 
 		}
 
-		const next = checksumQueue.shift();
-
-		checksumQueueLength--;
-
-		if(fs.existsSync(next)) {
-
-			const nextStat = fs.statSync(next);
-
-			if(nextStat.isFile()) {
-
-				gameFilesIndex[next.substring(process.env.GAME_FOLDER.length).split(path.sep).join('/')] = {
-					checksum: Hasher.checksum(next),
-					size: nextStat.size
-				};
-
-			}
-
-		}
-
-		setImmediate(calcChecksumTask);
+		resolve(gameFilesIndex);
 
 	};
 
-	for(let i = 0; i < runningTasks; i++) calcChecksumTask();
+	setImmediate(resolverTask);
+
+	const threadQueues = Utils.divideArray(checksumQueue, threadCount);
+
+	for(let threadID = 0; threadID < threadCount; threadID++) {
+
+		const thread = new worker_threads.Worker(CHECKSUM_THREAD_WORKER_PATH, {
+			workerData: {
+				id: threadID,
+				queue: threadQueues[threadID]
+			}
+		});
+
+		thread.once('error', reject);
+
+		thread.once('exit', threadExitCode => {
+
+			if(threadExitCode !== 0) {
+
+				Debug.log('Updater', `[Error] Checksum calculation thread #${threadID} exited with code ${threadExitCode}`);
+
+			}
+
+			runningThreadIDs.delete(threadID);
+
+		});
+
+		thread.on('message', message => {
+
+			switch(message?.id) {
+
+				case 'error': {
+
+					Debug.log('Uploader', `[Error] ${message.message}`);
+
+					return;
+
+				}
+
+				case 'checksumData': {
+
+					gameFilesIndex[message.key.substring(process.env.GAME_FOLDER.length).split(path.sep).join('/')] = message.data;
+
+					return;
+
+				}
+
+			}
+
+		});
+
+	}
 
 });
 
@@ -362,20 +389,18 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 	const smallDownloadThreadCount = Config.get('performance.smallDownloadThreads') as number;
 	const largeDownloadThreadCount = Config.get('performance.largeDownloadThreads') as number;
 
-	const downloadTaskQueues = [
+	const threadQueues = [
 		...Utils.divideArray(downloadQueueKeys.slice(0, smallQueueEnd), smallDownloadThreadCount),
 		...Utils.divideArray(downloadQueueKeys.slice(smallQueueEnd), largeDownloadThreadCount)
 	];
 
-	const downloaderTaskPath = path.resolve(__dirname, 'UpdaterDownloadThread.js');
+	const threadCount = threadQueues.length;
 
-	const taskCount = downloadTaskQueues.length;
-
-	const runningTasks = new Set<number>(Array.from({ length: taskCount }, (_, i) => i));
+	const runningThreads = new Set(Array.from({ length: threadCount }, (_, i) => i));
 
 	const resolverTask = () => {
 
-		if(runningTasks.size > 0) {
+		if(runningThreads.size > 0) {
 
 			setTimeout(resolverTask, 500);
 
@@ -394,24 +419,32 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 	setImmediate(resolverTask);
 
-	for(let i = 0; i < taskCount; i++) {
+	for(let threadID = 0; threadID < threadCount; threadID++) {
 
-		const downloaderTask = new worker_threads.Worker(downloaderTaskPath, {
+		const thread = new worker_threads.Worker(DOWNLOAD_THREAD_WORKER_PATH, {
 			workerData: {
 				launcherVersion: ElectronUpdater.autoUpdater.currentVersion.version,
 				clientCdnURL: CLIENT_CDN_URL,
 				gameFolder: process.env.GAME_FOLDER,
-				queueKeys: downloadTaskQueues[i]
+				queue: threadQueues[threadID]
 			}
 		});
 
-		downloaderTask.on('exit', () => {
+		thread.once('error', reject);
 
-			runningTasks.delete(i);
+		thread.once('exit', threadExitCode => {
+
+			if(threadExitCode !== 0) {
+
+				Debug.log('Updater', `[Error] Download thread #${threadID} exited with code ${threadExitCode}`);
+
+			}
+
+			runningThreads.delete(threadID);
 
 		});
 
-		downloaderTask.on('message', (message) => {
+		thread.on('message', (message) => {
 
 			switch(message.id) {
 
@@ -419,7 +452,7 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 					Debug.log('Updater', `[Error] ${message.message}`);
 
-					break;
+					return;
 
 				}
 
@@ -430,14 +463,15 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 					if(message.bytes > 0) speedMeterDatas[speedMeterDatas.length - 1] += message.bytes;
 					
-					break;
+					return;
 
 				}
 
 				case 'downloadedCountIncrement': {
 					
 					downloadedCount++;
-					break;
+
+					return;
 				
 				}
 

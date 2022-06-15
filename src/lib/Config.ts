@@ -9,10 +9,10 @@ const DEFAULT_CONFIG = {
 
 	'developerMode': CLIArgsParser.hasOption('developer-mode'),
 
-	'performance.purgeThreads': 32,
-	'performance.smallDownloadThreads': 32,
+	'performance.purgeThreads': 64,
+	'performance.smallDownloadThreads': 24,
 	'performance.largeDownloadThreads': 8,
-	'performance.checksumThreads': 8,
+	'performance.checksumThreads': 16,
 
 	'settings.clientJVMMemory': Math.min(2048, Math.round(os.totalmem() / Math.pow(2, 31)) * Math.pow(2, 10))
 	
@@ -46,6 +46,7 @@ export const loadConfig = () => new Promise<void>((resolve, reject) => {
 		Debug.log('Config', 'The configuration file couldn\'t be decrypted (missing / invalid encryption key?)');
 
 		fs.unlinkSync(configFile);
+		
 		config = {};
 
 		saveConfig().then(resolve).catch(reject);
@@ -53,7 +54,7 @@ export const loadConfig = () => new Promise<void>((resolve, reject) => {
 	});
 
 	return;
-	
+
 });
 
 const saveConfig = () => new Promise<void>((resolve, reject) => {

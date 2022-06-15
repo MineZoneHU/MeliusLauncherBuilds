@@ -20,6 +20,7 @@ const collectFiles = (dirPath) => {
 const options = {
 	deadCodeInjection: true,
 	deadCodeInjectionThreshold: 0.75,
+	seed: 0x13371337,
 	stringArray: true,
 	stringArrayEncoding: [
 		'base64'

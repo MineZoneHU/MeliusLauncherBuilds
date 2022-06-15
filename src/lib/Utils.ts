@@ -129,7 +129,7 @@ export const areObjectsEqual = (objectA : object, objectB : object, checkKeyOrde
 	return true;
 };
 
-export const divideArray = (arr : unknown[], n : number, fill = false) : unknown[][] => {
+export const divideArray = <T>(arr : T[], n : number, fill = false) : T[][] => {
 
 	if(arr.length <= n) {
 
