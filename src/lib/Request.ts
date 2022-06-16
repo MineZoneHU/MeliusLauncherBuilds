@@ -43,9 +43,14 @@ const _request = (urlStr : string, options : (http.RequestOptions | https.Reques
 		else options.headers['Accept-Encoding'] = 'br, gzip, deflate';
 	}
 
+	delete options.compression;
+
 	if(options.followRedirects !== false && options.maxRedirectCount === undefined) {
 		options.maxRedirectCount = DEFAULT_MAX_REDIRECT_COUNT;
 	}
+
+	delete options.followRedirects;
+	delete options.maxRedirectCount;
 
 	switch(parsedURL.protocol) {
 

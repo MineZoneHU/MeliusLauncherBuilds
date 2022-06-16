@@ -1,3 +1,4 @@
+import * as fs from 'fs';
 import * as path from 'path';
 
 const BYTE_UNITS = [{
@@ -169,7 +170,22 @@ export const bytesToHuman = (bytes : number, decimalPrecision = 0) => {
 
 };
 
-const isSubpath = (parentPath : string, subPath : string) : boolean => {
+export const isSubpath = (parentPath : string, subPath : string) : boolean => {
 	const relativePath = path.relative(parentPath, subPath);
 	return relativePath && !relativePath.startsWith('..') && !path.isAbsolute(relativePath);
+};
+
+export const collectFiles = (dirPath : string) : string[] => {
+
+	if(!fs.existsSync(dirPath)) return [];
+
+	const collectedFiles = [];
+
+	const files = fs.readdirSync(dirPath).map(file => path.resolve(dirPath, file));
+	for(const file of files) {
+		if(fs.statSync(file).isDirectory()) collectedFiles.push(...collectFiles(file));
+		else collectedFiles.push(file);
+	}
+    
+	return collectedFiles;
 };

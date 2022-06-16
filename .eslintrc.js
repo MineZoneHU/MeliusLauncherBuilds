@@ -17,6 +17,10 @@ module.exports = {
 		'@typescript-eslint'
 	],
 	rules: {
+		'comma-dangle': [
+			'error',
+			'never'
+		],
 		indent: [
 			'error',
 			'tab',

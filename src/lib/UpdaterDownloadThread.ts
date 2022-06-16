@@ -1,9 +1,8 @@
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import * as stream from 'stream';
 import * as worker_threads from 'worker_threads';
-import * as Request from './Request';
+import axios from 'axios';
 
 if(worker_threads.isMainThread) {
 
@@ -32,36 +31,20 @@ const downloadNext = () => {
 
 	let currDownloadedSize = 0;
 
-	Request.request(`${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`, {
+	axios({
+		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`,
 		method: 'GET',
 		headers: {
 			'User-Agent': USER_AGENT
 		},
-		onDownloadProgress: downloadProgressInfo => {
-
-			worker_threads.parentPort.postMessage({
-				id: 'downloadProgress',
-				bytes: downloadProgressInfo.downloadedBytes - currDownloadedSize
-			});
-
-			currDownloadedSize = downloadProgressInfo.downloadedBytes;
-
-		},
-		stream: true
+		responseType: 'stream'
 	}).then(res => {
 
-		if(res.head.statusCode !== 200) {
-
-			(res.body as stream.Readable).destroy();
+		if(res.status !== 200) {
 
 			worker_threads.parentPort.postMessage({
 				id: 'error',
-				message: `Redownloading ${next} (got statusCode ${res.head.statusCode})`
-			});
-
-			worker_threads.parentPort.postMessage({
-				id: 'downloadProgress',
-				bytes: -currDownloadedSize
+				message: `Redownloading ${next} (got statusCode ${res.status})`
 			});
 
 			queue.unshift(next);
@@ -72,12 +55,23 @@ const downloadNext = () => {
 
 		}
 
+		res.data.on('data', chunk => {
+
+			currDownloadedSize += chunk.length;
+			
+			worker_threads.parentPort.postMessage({
+				id: 'downloadProgress',
+				bytes: chunk.length
+			});
+
+		});
+
 		fs.mkdirSync(path.dirname(nextPath), {
 			recursive: true,
 			mode: 0o700
 		});
 
-		const bodyStream = res.body as stream.Readable;
+		const bodyStream = res.data;
 		const writeStream = fs.createWriteStream(nextPath, {
 			mode: 0o700
 		});

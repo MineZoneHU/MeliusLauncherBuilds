@@ -1,6 +1,6 @@
 {
   	"name": "melius-launcher",
-  	"version": "2.0.2",
+  	"version": "2.0.3",
   	"description": "MineZone Launcher",
   	"private": true,
   	"scripts": {
@@ -38,6 +38,7 @@
   	  	"javascript-obfuscator": "^3.0.0"
   	},
   	"dependencies": {
+  	  	"axios": "^0.27.2",
   	  	"electron-updater": "^4.6.1",
   	  	"ws": "^8.5.0"
   	}

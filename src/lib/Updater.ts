@@ -27,21 +27,6 @@ ElectronUpdater.autoUpdater.setFeedURL({
 });
 ElectronUpdater.autoUpdater.autoDownload = false;
 
-export const collectFiles = (dirPath : string) : string[] => {
-
-	if(!fs.existsSync(dirPath)) return [];
-
-	const collectedFiles = [];
-
-	const files = fs.readdirSync(dirPath).map(file => path.resolve(dirPath, file));
-	for(const file of files) {
-		if(fs.statSync(file).isDirectory()) collectedFiles.push(...collectFiles(file));
-		else collectedFiles.push(file);
-	}
-    
-	return collectedFiles;
-};
-
 const collectGameFiles = () => new Promise<string[]>((resolve, reject) => {
 
 	const ignoredGameFiles = new Set([
@@ -54,23 +39,23 @@ const collectGameFiles = () => new Promise<string[]>((resolve, reject) => {
 		path.resolve(process.env.GAME_FOLDER, 'servers.dat'),
 		path.resolve(process.env.GAME_FOLDER, 'servers.dat_old'),
 		path.resolve(process.env.GAME_FOLDER, 'usercache.json'),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, '.fabric')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, '.optifine')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'config')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'crash-reports')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'CustomSkinLoader')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'logs')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'resourcepacks')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'resources')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'saves')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'screenshots')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'server-resource-packs')),
-		...collectFiles(path.resolve(process.env.GAME_FOLDER, 'shaderpacks'))
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, '.fabric')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, '.optifine')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'config')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'crash-reports')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'CustomSkinLoader')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'logs')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'resourcepacks')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'resources')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'saves')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'screenshots')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'server-resource-packs')),
+		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'shaderpacks'))
 	]);
 
 	ignoredGameFiles.delete(path.resolve(process.env.GAME_FOLDER, 'CustomSkinLoader', 'CustomSkinLoader.json'));
 
-	resolve(collectFiles(process.env.GAME_FOLDER).filter(filter => !ignoredGameFiles.has(filter)));
+	resolve(Utils.collectFiles(process.env.GAME_FOLDER).filter(filter => !ignoredGameFiles.has(filter)));
 
 });
 

@@ -9,10 +9,10 @@ const DEFAULT_CONFIG = {
 
 	'developerMode': CLIArgsParser.hasOption('developer-mode'),
 
-	'performance.purgeThreads': 64,
-	'performance.smallDownloadThreads': 24,
-	'performance.largeDownloadThreads': 8,
-	'performance.checksumThreads': 16,
+	'performance.purgeThreads': os.cpus().length * 4,
+	'performance.smallDownloadThreads': os.cpus().length * 3,
+	'performance.largeDownloadThreads': os.cpus().length,
+	'performance.checksumThreads': os.cpus().length,
 
 	'settings.clientJVMMemory': Math.min(2048, Math.round(os.totalmem() / Math.pow(2, 31)) * Math.pow(2, 10))
 	

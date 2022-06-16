@@ -11,6 +11,7 @@ import * as Debug from './Debug';
 import * as Request from './Request';
 import * as Config from './Config';
 import * as Updater from './Updater';
+import * as Utils from './Utils';
 import { ServerList } from './ServerList';
 
 const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.round(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
@@ -230,7 +231,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		'-Dlog4j2.formatMsgNoLookups=true',
 		'-classpath',
 		[
-			...Updater.collectFiles(path.resolve(process.env.GAME_FOLDER, 'libraries/')),
+			...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'libraries/')),
 			path.resolve(process.env.GAME_FOLDER, 'client.jar')
 		].map(putInQuotationMarksIfNeeded).join(path.delimiter),
 		`-Xms${Config.get('settings.clientJVMMemory') as number}M`,
@@ -414,12 +415,12 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 					launcherWindow.removeAllListeners('close');
 
-					launcherWindow.hide();
-					launcherWindow.close();
-
 					Config.remove('authentication.refreshToken');
 					Config.remove('authentication.accessToken');
 					Config.remove('authentication.username');
+
+					launcherWindow.hide();
+					launcherWindow.close();
 
 					resolve();
                     

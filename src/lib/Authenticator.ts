@@ -15,6 +15,7 @@ const refreshToken = () => new Promise<boolean | string>(async (resolve, reject)
 	if(!Config.has('authentication.refreshToken') || !Config.has('authentication.refreshToken.expiry') || Config.get('authentication.refreshToken.expiry') < Date.now() - 3 * 24 * 60 * 60 * 1000) {
         
 		resolve(false);
+
 		return;
 
 	}
@@ -115,12 +116,14 @@ const startAccessTokenRefreshingTask = () => {
 			Debug.log('Authenticator', `Got error code ${refreshTokenResult} while refreshing the token`);
 
 			Electron.app.exit(1);
+			process.exit(1);
 
 		}).catch(err => {
 
 			Debug.log('Authenticator', `An error has occured while refreshing the token: ${err}`);
 
 			Electron.app.exit(1);
+			process.exit(1);
 
 		});
 
@@ -150,7 +153,7 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
     
 	}
     
-	if(await refreshToken() === true) {
+	if(await refreshToken().catch(reject) === true) {
 
 		Debug.log('Authenticator', 'Authenticated with token, further authentication is not required');
 
@@ -200,7 +203,7 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 
 					const openableWebsites = {
 						registrationPage: 'https://bolt.minezone.hu/auth/registration',
-						forgotPasswordPage: 'https://bolt.minezone.hu/auth/forgot-password',
+						forgotPasswordPage: 'https://bolt.minezone.hu/auth/forgot-password'
 					};
 
 					if(openableWebsites[message.website] === undefined) return;
@@ -291,7 +294,8 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 					}
 
 					Electron.dialog.showErrorBox('Autentikációs hiba', errorDialogContent);
-					break;
+					
+					return;
 
 				}
 
