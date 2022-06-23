@@ -20,4 +20,12 @@ export const registerShortcuts = () : void => {
 
 	});
 
+	Electron.globalShortcut.register('CommandOrControl+Shift+M', () => {
+
+		if(!process.env.GAME_FOLDER || !fs.existsSync(process.env.GAME_FOLDER) || !fs.existsSync(path.resolve(process.env.GAME_FOLDER, 'logs')) || !fs.existsSync(path.resolve(process.env.GAME_FOLDER, 'logs', 'latest.log'))) return;
+
+		Electron.shell.openPath(path.resolve(process.env.GAME_FOLDER, 'logs', 'latest.log'));
+
+	});
+
 };

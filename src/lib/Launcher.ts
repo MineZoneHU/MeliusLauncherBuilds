@@ -85,13 +85,21 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	let accessTokenUpdateInterval;
 	let serverListUpdateInterval;
-	let clientConnected = false;
+	let websocketClientConnected = false;
 	let filesVerificationRequested = false;
 	let filesVerified = false;
 
+	let frozenClientKillerTask = setTimeout(() => {
+
+		Debug.log('Launcher', '[Error] The client process didn\'t connect to the websocket server after 15 seconds, it will be shut down.');
+
+		clientProcess.kill('SIGKILL');
+
+	}, 15000);
+
 	websocketServer.on('connection', async (clientSocket, req) => {
 
-		if(clientConnected) {
+		if(websocketClientConnected) {
 
 			clientSocket.close(0, 'A client has already connected');
 			return;
@@ -105,7 +113,15 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		}
 
-		clientConnected = true;
+		websocketClientConnected = true;
+
+		if(frozenClientKillerTask !== null) {
+
+			clearTimeout(frozenClientKillerTask);
+
+			frozenClientKillerTask = null;
+
+		}
 
 		// launcherWindow.hide(); // TODO: only hide launcher when the client is ready (requires frontend implementation)
         
@@ -210,7 +226,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		clientSocket.on('close', () => {
 
-			clientConnected = false;
+			websocketClientConnected = false;
 
 		});
 
@@ -284,8 +300,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 			cwd: process.env.GAME_FOLDER,
 			env: clientProcessEnvironment,
 			shell: true,
-			detached: true,
-			stdio: 'ignore'
+			detached: true
 		}
 	);
 
@@ -294,18 +309,39 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 	Electron.app.once('will-quit', parentProcessExitListener);
 	process.once('exit', parentProcessExitListener);
 
+	clientProcess.stdout.on('data', chunk => {
+
+		Debug.log('Launcher', chunk.toString().replace(/(?:\r\n?|\n\r?)$/, '').split(/(?:\r\n?|\n\r?)/g).map(p => `[Client process STDOUT] ${p}`).join(os.EOL));
+
+	});
+
+	clientProcess.stderr.on('data', chunk => {
+
+		Debug.log('Launcher', chunk.toString().replace(/(?:\r\n?|\n\r?)$/, '').split(/(?:\r\n?|\n\r?)/g).map(p => `[Client process STDERR] ${p}`).join(os.EOL));
+
+	});
+
 	clientProcess.once('spawn', () => {
-        
+
 		Debug.log('Launcher', 'Client process spawned!');
 
 	});
 
-	clientProcess.once('exit', () => {
+	clientProcess.once('exit', exitCode => {
+
+		if(exitCode !== 0) {
+
+			Debug.log('Launcher', `[Error] The client process exited with exit code ${exitCode}`);
+
+		}
 
 		Debug.log('Launcher', 'Client process exited!');
 
 		Electron.app.off('before-quit', parentProcessExitListener);
 		process.off('exit', parentProcessExitListener);
+
+		process.stdout.removeAllListeners('data');
+		process.stderr.removeAllListeners('data');
 
 		clearInterval(accessTokenUpdateInterval);
 		clearInterval(serverListUpdateInterval);
@@ -321,10 +357,12 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	clientProcess.once('error', err => {
 
+		Debug.log('Launcher', `[Error] An error occured affecting the client process: ${err}`);
+
 		clientProcess.kill('SIGKILL');
 
 		reject(err);
-		
+
 	});
 
 });
