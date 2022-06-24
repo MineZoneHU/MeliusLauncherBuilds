@@ -83,19 +83,11 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	const websocketAuthenticationToken = crypto.randomBytes(32).toString('hex');
 
-	let accessTokenUpdateInterval;
-	let serverListUpdateInterval;
+	let accessTokenUpdateInterval = null;
+	let serverListUpdateInterval = null;
 	let websocketClientConnected = false;
 	let filesVerificationRequested = false;
 	let filesVerified = false;
-
-	let frozenClientKillerTask = setTimeout(() => {
-
-		Debug.log('Launcher', '[Error] The client process didn\'t connect to the websocket server after 15 seconds, it will be shut down.');
-
-		clientProcess.kill('SIGKILL');
-
-	}, 15000);
 
 	websocketServer.on('connection', async (clientSocket, req) => {
 
@@ -114,14 +106,6 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		}
 
 		websocketClientConnected = true;
-
-		if(frozenClientKillerTask !== null) {
-
-			clearTimeout(frozenClientKillerTask);
-
-			frozenClientKillerTask = null;
-
-		}
 
 		// launcherWindow.hide(); // TODO: only hide launcher when the client is ready (requires frontend implementation)
         
@@ -166,6 +150,8 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 						servers: serverList
 					}));
 
+					if(accessTokenUpdateInterval !== null) clearInterval(accessTokenUpdateInterval);
+
 					accessTokenUpdateInterval = setInterval(() => {
 
 						clientSocket.send(JSON.stringify({
@@ -174,6 +160,8 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 						}));
 
 					}, .5 * 60 * 1000);
+
+					if(serverListUpdateInterval !== null) clearInterval(serverListUpdateInterval);
 
 					serverListUpdateInterval = setInterval(async () => {
 
@@ -289,7 +277,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		WEBSOCKET_AUTHENTICATION_TOKEN: websocketAuthenticationToken
 	};
 
-	if(Config.get('developerMode')) {
+	if(Config.get('developerMode') === true) {
 		clientProcessEnvironment.DEVELOPER_MODE = '';
 	}
 
@@ -343,8 +331,8 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		process.stdout.removeAllListeners('data');
 		process.stderr.removeAllListeners('data');
 
-		clearInterval(accessTokenUpdateInterval);
-		clearInterval(serverListUpdateInterval);
+		if(accessTokenUpdateInterval !== null) clearInterval(accessTokenUpdateInterval);
+		if(serverListUpdateInterval !== null) clearInterval(serverListUpdateInterval);
 
 		websocketServer.close();
 		websocketHTTPServer.close();
@@ -361,7 +349,9 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		clientProcess.kill('SIGKILL');
 
-		reject(err);
+		clientProcess.emit('exit');
+
+		resolve();
 
 	});
 
