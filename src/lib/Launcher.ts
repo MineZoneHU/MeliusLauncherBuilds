@@ -247,7 +247,6 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		'-XX:+DisableExplicitGC',
 		'-XX:+ParallelRefProcEnabled',
 		'-XX:+PerfDisableSharedMem',
-		'-XX:+UseCompressedOops',
 		'-XX:G1NewSizePercent=20',
 		'-XX:G1ReservePercent=20',
 		'-XX:G1HeapRegionSize=32M',
