@@ -47,11 +47,13 @@ Electron.app.once('ready', async () => {
 		await Folders.initFolders();
 
 		await Debug.init();
+
+		Debug.log('Main', `Process started at ${(new Date(Date.now() - process.uptime() * 1000)).toISOString()}`);
 		Debug.log('Main', 'System information:');
-		Debug.log('Main', ` - Platform: ${os.platform()}`);
-		Debug.log('Main', ` - Architecture: ${os.arch()}`);
+		Debug.log('Main', ` - OS: ${os.version()} (${os.arch()})`);
 		Debug.log('Main', ` - Total memory: ${Utils.bytesToHuman(os.totalmem())} (${os.totalmem()} B)`);
-		Debug.log('Main', ` - CPU core count: ${os.cpus().length}`);
+		Debug.log('Main', ` - Free memory: ${Utils.bytesToHuman(os.freemem())} (${os.freemem()} B)`);
+		Debug.log('Main', ` - CPUs (${os.cpus().length}):\n${os.cpus().reduce((text, cpu, i) => `${text}   ${i + 1}. - ${cpu.model} (${cpu.speed / 1000} GHz)\n`, '')}`);
 
 		Debug.log('Main', 'Registering the global shortcuts...');
 		await GlobalShortcuts.registerShortcuts();

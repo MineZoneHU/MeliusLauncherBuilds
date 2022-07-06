@@ -89,9 +89,9 @@ const login = (username : string, password : string) => new Promise<true | strin
 
 });
 
-export const getUsername = () => Config.get('authentication.username') as string;
+export const getUsername = () => Config.get('authentication.username') as string ?? null;
 
-export const getAccessToken = () => Config.get('authentication.accessToken') as string;
+export const getAccessToken = () => Config.get('authentication.accessToken') as string ?? null;
 
 export const generateUUID = () => {
 
@@ -113,17 +113,11 @@ const startAccessTokenRefreshingTask = () => {
 
 			if(refreshTokenResult === true) return;
 
-			Debug.log('Authenticator', `Got error code ${refreshTokenResult} while refreshing the token`);
-
-			Electron.app.exit(1);
-			process.exit(1);
+			Debug.log('Authenticator', `[Error] Got error code ${refreshTokenResult} while refreshing the token`);
 
 		}).catch(err => {
 
-			Debug.log('Authenticator', `An error has occured while refreshing the token: ${err}`);
-
-			Electron.app.exit(1);
-			process.exit(1);
+			Debug.log('Authenticator', `[Error] An error has occured while refreshing the token: ${err}`);
 
 		});
 
@@ -240,7 +234,7 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 						default: {
 
 							errorDialogContent = 'Ismeretlen eredetű hiba lépett fel!';
-							Debug.log('Authenticator', `An unknown error has occured during the authentication. (${authenticationResult})`);
+							Debug.log('Authenticator', `[Error] An unknown error has occured during the authentication. (${authenticationResult})`);
 							break;
 
 						}
@@ -251,14 +245,28 @@ export const authenticate = () => new Promise<void>(async (resolve, reject) => {
 						case 'ONLY_IPV4': {
 
 							errorDialogContent = 'Belső hiba lépett fel!';
-							Debug.log('Authenticator', `An internal error has occured during the authentication. (${authenticationResult})`);
+							Debug.log('Authenticator', `[Error] An internal error has occured during the authentication. (${authenticationResult})`);
 							break;
 
 						}
 
 						case 'MISMATCHING_IP': {
 
-							errorDialogContent = 'Ez a karakter egy másik IP-címre van levédve!';
+							errorDialogContent = 'Ez a fiók egy másik IP-címre van levédve!';
+							break;
+
+						}
+
+						case 'HWID_BAN': {
+
+							errorDialogContent = 'Ez a számítógép ki lett tiltva!';
+							break;
+
+						}
+
+						case 'SUSPENDED_ACCOUNT': {
+
+							errorDialogContent = 'Ez a karakter fel van függesztve!';
 							break;
 
 						}

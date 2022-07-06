@@ -14,7 +14,7 @@ import * as Updater from './Updater';
 import * as Utils from './Utils';
 import { ServerList } from './ServerList';
 
-const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.round(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
+const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.floor(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
 const AUTH_URL = 'https://melius-api.minezone.hu';
 
 let launcherWindow : Electron.BrowserWindow;
@@ -41,7 +41,7 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 			if(parsedBody?.success !== true) {
 
-				Debug.log('Updater', `[Error] An error occured while fetching the latest server list: ${parsedBody.errorCode}`);
+				Debug.log('Launcher', `[Error] An error occured while fetching the latest server list: ${parsedBody.errorCode}`);
 
 				return;
 
@@ -53,9 +53,11 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 		}).catch(err => {
 
-			Debug.log('Updater', `[Error] An error occured while fetching the latest server list: ${err}`);
+			Debug.log('Launcher', `[Error] An error occured while fetching the latest server list: ${err}`);
 
 		});
+
+		await new Promise((resolve, reject) => setTimeout(resolve, 3 * 1000));
 
 	} while(!fetchedSuccessfully);
 
@@ -75,7 +77,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	websocketHTTPServer.listen();
 
-	await (new Promise<void>((resolve, reject) => websocketHTTPServer.on('listening', resolve)));
+	await (new Promise<void>((resolve, reject) => websocketHTTPServer.on('listening', resolve).on('error', reject))).catch(reject);
 
 	const websocketServer = new WebSocket.Server({
 		server: websocketHTTPServer
@@ -110,7 +112,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		// launcherWindow.hide(); // TODO: only hide launcher when the client is ready (requires frontend implementation)
         
 		clientSocket.on('message', async (data, isBinary) => {
-             
+            
 			if(isBinary) return;
 
 			const parsedMessage = JSON.parse(data.toString());
@@ -298,7 +300,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	clientProcess.stdout.on('data', chunk => {
 
-		Debug.log('Launcher', chunk.toString().replace(/(?:\r\n?|\n\r?)$/, '').split(/(?:\r\n?|\n\r?)/g).map(p => `[Client process STDOUT] ${p}`).join(os.EOL));
+		Debug.log('Launcher', chunk.toString().replace(/(?:\r\n?|\n\r?)$/, '').split(/(?:\r\n?|\n\r?)/g).map(p => `[Client process STDOUT] ${p}`).join(os.EOL), false);
 
 	});
 
@@ -310,6 +312,12 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	clientProcess.once('spawn', () => {
 
+		if(clientProcess.pid !== undefined) {
+			
+			os.setPriority(clientProcess.pid, os.constants.priority.PRIORITY_HIGH);
+		
+		}
+
 		Debug.log('Launcher', 'Client process spawned!');
 
 	});
@@ -318,7 +326,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		if(exitCode !== 0) {
 
-			Debug.log('Launcher', `[Error] The client process exited with exit code ${exitCode}`);
+			Debug.log('Launcher', `[Error] The client process exited with non-zero exit code ${exitCode}`);
 
 		}
 
@@ -344,11 +352,9 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	clientProcess.once('error', err => {
 
-		Debug.log('Launcher', `[Error] An error occured affecting the client process: ${err}`);
+		Debug.log('Launcher', `[Error] An error occured in the client process: ${err}`);
 
 		clientProcess.kill('SIGKILL');
-
-		clientProcess.emit('exit');
 
 		resolve();
 
@@ -459,7 +465,9 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 					launcherWindow.hide();
 
-					await launchGame().catch(reject);
+					await launchGame().catch(err => {
+						Debug.log('Launcher', `[Error] An error has occured in the client process: ${err}`);
+					});
 
 					launcherWindow.show();
 					launcherWindow.focus();

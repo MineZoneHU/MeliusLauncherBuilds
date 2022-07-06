@@ -13,11 +13,12 @@ export const init = () : void => {
 
 };
 
-export const log = (context : string, message : string) => {
+export const log = (context : string, message : string, saveToFile = true) => {
 
 	const recordLines = message.split(/(?:\r\n?|\n\r?)/g).map(messageLine => `[${(new Date()).toISOString()}] [${context}] ${messageLine}`);
 	
-	logFileWriteStream.write(recordLines.join(os.EOL) + os.EOL);
 	process.stdout.write(recordLines.join(os.EOL) + os.EOL);
+
+	if(saveToFile) logFileWriteStream.write(recordLines.join(os.EOL) + os.EOL);
 	
 };
