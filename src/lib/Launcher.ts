@@ -12,13 +12,18 @@ import * as Request from './Request';
 import * as Config from './Config';
 import * as Updater from './Updater';
 import * as Utils from './Utils';
+import * as MCPinger from './MCPinger';
 import { ServerList } from './ServerList';
 
+const MIN_ALLOCATABLE_MEMORY = 1024;
 const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.floor(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
 const AUTH_URL = 'https://melius-api.minezone.hu';
+const PING_ADDRESS = 'play.minezone.hu';
 
 let launcherWindow : Electron.BrowserWindow;
 let serverList : ServerList = { trusted: [], untrusted: [] };
+
+let pingerTask = null;
 
 const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reject) => {
 
@@ -57,7 +62,7 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 		});
 
-		await new Promise((resolve, reject) => setTimeout(resolve, 3 * 1000));
+		await new Promise((resolve, reject) => setTimeout(resolve, 5 * 1000));
 
 	} while(!fetchedSuccessfully);
 
@@ -109,7 +114,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 		websocketClientConnected = true;
 
-		// launcherWindow.hide(); // TODO: only hide launcher when the client is ready (requires frontend implementation)
+		launcherWindow.hide();
         
 		clientSocket.on('message', async (data, isBinary) => {
             
@@ -364,6 +369,24 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 export const start = () => new Promise<void>(async (resolve, reject) => {
 
+	pingerTask = setInterval(() => {
+
+		if(launcherWindow === null) return;
+
+		MCPinger.ping(PING_ADDRESS, {
+			timeout: 5000
+		}).then(pingRes => {
+
+			launcherWindow.webContents.send('online-count', pingRes?.players?.online );
+
+		}).catch(err => {
+			
+			Debug.log('Launcher', `[Error] An error occured in the pinging process: ${err}`);
+
+		});
+
+	}, 15 * 1000);
+
 	launcherWindow = new Electron.BrowserWindow({
 		title: 'MineZone',
 		titleBarStyle: 'hidden',
@@ -398,6 +421,16 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 	launcherWindow.once('show', async () => {
 
 		Debug.log('Launcher', 'Listening for launcher events...');
+
+		if(Config.get('settings.clientJVMMemory') < MIN_ALLOCATABLE_MEMORY) {
+
+			Config.set('settings.clientJVMMemory', MIN_ALLOCATABLE_MEMORY);
+
+		} else if(Config.get('settings.clientJVMMemory') > MAX_ALLOCATABLE_MEMORY) {
+
+			Config.set('settings.clientJVMMemory', MAX_ALLOCATABLE_MEMORY);
+
+		}
 
 		launcherWindow.webContents.on('ipc-message', async (event, channel, message) => {
 
@@ -455,6 +488,15 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 					launcherWindow.hide();
 					launcherWindow.close();
 
+					launcherWindow = null;
+
+					if(pingerTask !== null) {
+						
+						clearInterval(pingerTask);
+						pingerTask = null;
+
+					}
+
 					resolve();
                     
 					break;
@@ -463,14 +505,14 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 				case 'launch-game': {
 
-					launcherWindow.hide();
-
 					await launchGame().catch(err => {
 						Debug.log('Launcher', `[Error] An error has occured in the client process: ${err}`);
 					});
 
 					launcherWindow.show();
 					launcherWindow.focus();
+
+					launcherWindow.webContents.send('game-exit');
 
 					break;
 

@@ -1,6 +1,6 @@
 {
   	"name": "melius-launcher",
-  	"version": "2.0.7",
+  	"version": "2.0.8",
   	"description": "MineZone Launcher",
   	"private": true,
   	"scripts": {
@@ -14,8 +14,7 @@
   	  	"predistinux": "npm run predist",
   	  	"distWin": "electron-builder --config electron-builder.json -w -p always",
   	  	"distMac": "electron-builder --config electron-builder.json -m -p always",
-  	  	"distLinux": "electron-builder --config electron-builder.json -l -p always",
-  	  	"inst": "electron-packager ./build/ --out ./dist/ --all --overwrite"
+  	  	"distLinux": "electron-builder --config electron-builder.json -l -p always"
   	},
   	"authors": [
   	  	"LifeGamer <lifegamer.hu@gmail.com>",

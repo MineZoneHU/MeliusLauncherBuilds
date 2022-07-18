@@ -1,5 +1,4 @@
 import * as http from 'http';
-import * as stream from 'stream';
 
 export interface RequestBufferResponse {
     head: {

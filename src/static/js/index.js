@@ -53,10 +53,7 @@ window.addEventListener('load', function() {
 	document.addEventListener('keydown', function(event) {
 
 		for(let blockedKey of blockedKeys) {
-			if(blockedKey.alt === event.altKey
-             && blockedKey.ctrl === event.ctrlKey
-             && blockedKey.shift === event.shiftKey
-             && blockedKey.key === event.code) {
+			if(blockedKey.alt === event.altKey && blockedKey.ctrl === event.ctrlKey && blockedKey.shift === event.shiftKey && blockedKey.key === event.code) {
 				event.preventDefault();
 				return false;
 			}

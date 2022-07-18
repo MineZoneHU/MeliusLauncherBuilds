@@ -1,5 +1,7 @@
 window.addEventListener('load', function() {
 
+	let interactionsDisabled = false;
+
 	let receivedUserData = false;
 
 	let currentScreen = 'launch';
@@ -7,21 +9,21 @@ window.addEventListener('load', function() {
 
 	let currentMemorySetting = 0;
 
-	let memorySettingSlider = document.getElementById('memory-setting-slider');
-	let memorySettingSliderValueLabel = document.getElementById('memory-setting-slider-value-label');
+	const memorySettingSlider = document.getElementById('memory-setting-slider');
+	const memorySettingSliderValueLabel = document.getElementById('memory-setting-slider-value-label');
 
 	memorySettingSliderValueLabel.innerHTML = '0 MiB';
 
 	memorySettingSlider.addEventListener('mousemove', function(event) {
 
-		if(!receivedUserData || event.target.value === currentMemorySetting) return;
+		if(interactionsDisabled || !receivedUserData || event.target.value === currentMemorySetting) return;
 
-		currentMemorySetting = event.target.value;
+		currentMemorySetting = parseInt(event.target.value);
 		memorySettingSliderValueLabel.innerHTML = currentMemorySetting + ' MiB';
 
 		ipcRenderer.send('set-setting', {
 			name: 'clientJVMMemory',
-			value: parseInt(currentMemorySetting)
+			value: currentMemorySetting
 		});
 
 	});
@@ -44,7 +46,7 @@ window.addEventListener('load', function() {
 
 	});
 
-	function switchScreen(targetScreen) {
+	const switchScreen = function(targetScreen) {
 
 		if(switchScreenInProgress || currentScreen === targetScreen) return;
 
@@ -111,6 +113,8 @@ window.addEventListener('load', function() {
 
 			event.preventDefault();
 
+			if(interactionsDisabled) return false;
+
 			switch(event.target.getAttribute('data-action')) {
 
 				case 'logout':
@@ -118,6 +122,9 @@ window.addEventListener('load', function() {
 					break;
 
 				case 'launch-game':
+					interactionsDisabled = true;
+					document.querySelector('*[data-action="launch-game"]').style.cursor = 'wait';
+					document.querySelector('*[data-action="launch-game"]').style.filter = 'grayscale(100%)';
 					ipcRenderer.send('launch-game');
 					break;
 
@@ -153,7 +160,7 @@ window.addEventListener('load', function() {
 
 		ipcRenderer.send('set-setting', {
 			name: 'clientJVMMemory',
-			value: message.minMemory
+			value: currentMemorySetting
 		});
 
 		memorySettingSlider.min = message.minMemory;
@@ -165,6 +172,22 @@ window.addEventListener('load', function() {
 		document.getElementById('profile-icon').src = message.profileIconSrc;
 
 		document.getElementById('profile-label-wrapper').innerHTML = message.username;
+
+	});
+
+	const onlineCountLabel = this.document.getElementById('online-count-label');
+
+	ipcRenderer.on('online-count', function(event, onlineCount) {
+
+		onlineCountLabel.innerHTML = (isNaN(onlineCount) || onlineCount < 0) ? 0 : onlineCount; 
+
+	});
+
+	ipcRenderer.on('game-exit', function(event) {
+
+		interactionsDisabled = false;
+		document.querySelector('*[data-action="launch-game"]').style.cursor = '';
+		document.querySelector('*[data-action="launch-game"]').style.filter = '';
 
 	});
 
