@@ -13,7 +13,6 @@
         "src/**/*"
     ],
     "exclude": [
-        "node_modules/",
-        "src/lib/LicenseManager.ts" // DEV: not required for production release
+        "node_modules/"
     ]
 }

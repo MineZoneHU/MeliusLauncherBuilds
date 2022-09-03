@@ -17,7 +17,7 @@ import { ServerList } from './ServerList';
 
 const MIN_ALLOCATABLE_MEMORY = 1024;
 const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.floor(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
-const AUTH_URL = 'https://melius-api.minezone.hu';
+const API_URL = 'https://melius-api.minezone.hu';
 const PING_ADDRESS = 'play.minezone.hu';
 
 let launcherWindow : Electron.BrowserWindow;
@@ -31,7 +31,7 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 	do {
 
-		await Request.request(`${AUTH_URL}/client/serverList`, {
+		await Request.request(`${API_URL}/client/serverList`, {
 			rejectUnauthorized: false,
 			method: 'POST',
 			data: JSON.stringify({
@@ -367,25 +367,28 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 });
 
+const fetchPlayerCount = () => {
+
+	if(launcherWindow === null) return;
+
+	MCPinger.ping(PING_ADDRESS, {
+		timeout: 5000
+	}).then(pingRes => {
+
+		launcherWindow.webContents.send('online-count', pingRes?.players?.online );
+
+	}).catch(err => {
+		
+		Debug.log('Launcher', `[Error] An error occured in the pinging process: ${err}`);
+
+	});
+
+};
+
 export const start = () => new Promise<void>(async (resolve, reject) => {
 
-	pingerTask = setInterval(() => {
-
-		if(launcherWindow === null) return;
-
-		MCPinger.ping(PING_ADDRESS, {
-			timeout: 5000
-		}).then(pingRes => {
-
-			launcherWindow.webContents.send('online-count', pingRes?.players?.online );
-
-		}).catch(err => {
-			
-			Debug.log('Launcher', `[Error] An error occured in the pinging process: ${err}`);
-
-		});
-
-	}, 15 * 1000);
+	pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
+	fetchPlayerCount();
 
 	launcherWindow = new Electron.BrowserWindow({
 		title: 'MineZone',

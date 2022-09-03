@@ -1,4 +1,3 @@
-// HACK: this will disable the rejection of invalid SSL certs, i should look for a fix 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 import * as os from 'os';
@@ -71,7 +70,6 @@ Electron.app.once('ready', async () => {
 		await Updater.update();
 		Debug.log('Main', 'Updated!');
 
-		// TODO: implement state machine (so we can get rid of this eslint suppression lol)
 		// eslint-disable-next-line no-constant-condition
 		while(true) {
 

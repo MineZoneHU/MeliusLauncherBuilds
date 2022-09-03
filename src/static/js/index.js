@@ -47,6 +47,12 @@ window.addEventListener('load', function() {
 			ctrl: true,
 			shift: false,
 			key: 'KeyR'
+		},
+		{
+			alt: false,
+			ctrl: true,
+			shift: true,
+			key: 'KeyR'
 		}
 	];
 
