@@ -6,9 +6,9 @@ import * as http from 'http';
 import * as Electron from 'electron';
 import * as ElectronUpdater from 'electron-updater';
 import * as WebSocket from 'ws';
+import Axios from './AxiosProxy';
 import * as Authenticator from './Authenticator';
 import * as Debug from './Debug';
-import * as Request from './Request';
 import * as Config from './Config';
 import * as Updater from './Updater';
 import * as Utils from './Utils';
@@ -16,7 +16,7 @@ import * as MCPinger from './MCPinger';
 import { ServerList } from './ServerList';
 
 const MIN_ALLOCATABLE_MEMORY = 1024;
-const MAX_ALLOCATABLE_MEMORY = Math.min(4, Math.floor(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
+const MAX_ALLOCATABLE_MEMORY = Math.min(8, Math.ceil(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
 const API_URL = 'https://melius-api.minezone.hu';
 const PING_ADDRESS = 'play.minezone.hu';
 
@@ -31,22 +31,22 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 	do {
 
-		await Request.request(`${API_URL}/client/serverList`, {
-			rejectUnauthorized: false,
+		await Axios({
 			method: 'POST',
+			url: `${API_URL}/client/serverList`,
+			headers: {
+				'content-type': 'application/json'
+			},
 			data: JSON.stringify({
 				accessToken: Config.get('authentication.accessToken')
 			}),
-			headers: {
-				'Content-Type': 'application/json'
-			}
+			responseType: 'json',
+			validateStatus: () => true
 		}).then(res => {
 
-			const parsedBody = JSON.parse(res.body.toString());
+			if(res.data?.success !== true) {
 
-			if(parsedBody?.success !== true) {
-
-				Debug.log('Launcher', `[Error] An error occured while fetching the latest server list: ${parsedBody.errorCode}`);
+				Debug.log('Launcher', `[Error] An error occured while fetching the latest server list: ${res.data?.errorCode}`);
 
 				return;
 
@@ -54,7 +54,7 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 			fetchedSuccessfully = true;
 
-			resolve(parsedBody);
+			resolve(res.data);
 
 		}).catch(err => {
 
@@ -387,9 +387,6 @@ const fetchPlayerCount = () => {
 
 export const start = () => new Promise<void>(async (resolve, reject) => {
 
-	pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
-	fetchPlayerCount();
-
 	launcherWindow = new Electron.BrowserWindow({
 		title: 'MineZone',
 		titleBarStyle: 'hidden',
@@ -410,16 +407,13 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 	launcherWindow.once('ready-to-show', () => {
 
+		pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
+		fetchPlayerCount();
+
 		launcherWindow.show();
 		launcherWindow.focus();
         
 	});
-
-	if(Config.get('settings.clientJVMMemory') as number > MAX_ALLOCATABLE_MEMORY) {
-
-		Config.set('settings.clientJVMMemory', MAX_ALLOCATABLE_MEMORY);
-
-	}
 
 	launcherWindow.once('show', async () => {
 

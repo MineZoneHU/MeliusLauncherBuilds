@@ -15,7 +15,6 @@ import * as Utils from './lib/Utils';
 
 const supportedPlatformsAndArchitectures = {
 	darwin: [ 'x64', 'arm64' ],
-	//linux: [ 'ia32', 'x64', 'arm64' ], // TODO: linux? no.
 	win32: [ 'ia32', 'x64', 'arm64' ]
 };
 
@@ -49,10 +48,10 @@ Electron.app.once('ready', async () => {
 
 		Debug.log('Main', `Process started at ${(new Date(Date.now() - process.uptime() * 1000)).toISOString()}`);
 		Debug.log('Main', 'System information:');
-		Debug.log('Main', ` - OS: ${os.version()} (${os.arch()})`);
-		Debug.log('Main', ` - Total memory: ${Utils.bytesToHuman(os.totalmem())} (${os.totalmem()} B)`);
-		Debug.log('Main', ` - Free memory: ${Utils.bytesToHuman(os.freemem())} (${os.freemem()} B)`);
-		Debug.log('Main', ` - CPUs (${os.cpus().length}):\n${os.cpus().reduce((text, cpu, i) => `${text}   ${i + 1}. - ${cpu.model} (${cpu.speed / 1000} GHz)\n`, '')}`);
+		Debug.log('Main', `- OS: ${os.version()} (${os.arch()})`);
+		Debug.log('Main', `- Total memory: ${Utils.bytesToHuman(os.totalmem())} (${os.totalmem()} B)`);
+		Debug.log('Main', `- Free memory: ${Utils.bytesToHuman(os.freemem())} (${os.freemem()} B)`);
+		Debug.log('Main', `- CPUs (${os.cpus().length}):\n${os.cpus().reduce((text, cpu, i) => `${text}   ${i + 1}. - ${cpu.model} (${cpu.speed / 1000} GHz)\n`, '')}`);
 
 		Debug.log('Main', 'Registering the global shortcuts...');
 		await GlobalShortcuts.registerShortcuts();

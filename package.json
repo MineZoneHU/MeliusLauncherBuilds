@@ -1,17 +1,15 @@
 {
   	"name": "melius-launcher",
-  	"version": "2.0.9",
+  	"version": "2.0.10",
   	"description": "MineZone Launcher",
   	"private": true,
   	"scripts": {
-  	  	"prebuild": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js",
-  	  	"build": "tsc",
-  	  	"postbuild": "node ./buildtools/obfuscateBuild.js && node ./buildtools/minifyBuild.js",
-  	  	"start": "electron ./build/index.js",
+  	  	"start": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js && tsc && electron ./build/index.js",
+  	  	"build": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js && tsc && node ./buildtools/obfuscateBuild.js && node ./buildtools/minifyBuild.js",
   	  	"predist": "node ./buildtools/purgeDist.js",
   	  	"predistWin": "npm run predist",
   	  	"predistMac": "npm run predist",
-  	  	"predistinux": "npm run predist",
+  	  	"predistLinux": "npm run predist",
   	  	"distWin": "electron-builder --config electron-builder.json -w -p always",
   	  	"distMac": "electron-builder --config electron-builder.json -m -p always",
   	  	"distLinux": "electron-builder --config electron-builder.json -l -p always"

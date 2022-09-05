@@ -4,8 +4,8 @@ import * as path from 'path';
 import * as worker_threads from 'worker_threads';
 import * as Electron from 'electron';
 import * as ElectronUpdater from 'electron-updater';
+import Axios from './AxiosProxy';
 import * as Debug from './Debug';
-import * as Request from './Request';
 import * as Config from './Config';
 import * as Utils from './Utils';
 import { GameFilesIndex } from './GameFilesIndex';
@@ -151,17 +151,32 @@ const fetchLatestGameFilesIndex = () => new Promise<GameFilesIndex>(async (resol
 
 	do {
 
-		await Request.request(`${CLIENT_CDN_URL}/${os.platform()}/${os.arch()}/index.json`).then(res => {
+		await Axios({
+			method: 'GET',
+			url: `${CLIENT_CDN_URL}/${os.platform()}/${os.arch()}/index.json`,
+			responseType: 'json',
+			validateStatus: () => true
+		}).then(res => {
+
+			if(res.status !== 200) {
+
+				Debug.log('Updater', `[Error] Got HTTP status code ${res.status} while fetching the latest game files index`);
+
+				return;
+
+			}
 
 			fetchedSuccessfully = true;
 
-			resolve(JSON.parse(res.body.toString('utf8')));
+			resolve(res.data);
 
 		}).catch(err => {
 
 			Debug.log('Updater', `[Error] An error occured while fetching the latest game files index: ${err}`);
 
 		});
+
+		await new Promise((resolve, reject) => setTimeout(resolve, 5 * 1000));
 
 	} while(!fetchedSuccessfully);
 
@@ -408,7 +423,6 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 
 		const thread = new worker_threads.Worker(DOWNLOAD_THREAD_WORKER_PATH, {
 			workerData: {
-				launcherVersion: ElectronUpdater.autoUpdater.currentVersion.version,
 				clientCdnURL: CLIENT_CDN_URL,
 				gameFolder: process.env.GAME_FOLDER,
 				queue: threadQueues[threadID]
@@ -517,8 +531,6 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 	});
 
 	updaterWindow.once('show', async () => {
-
-		Request.setLauncherVersion(ElectronUpdater.autoUpdater.currentVersion.version);
 
 		Debug.log('Updater', 'Searching for launcher updates...');
 

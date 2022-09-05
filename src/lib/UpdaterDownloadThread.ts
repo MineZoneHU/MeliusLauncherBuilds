@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as worker_threads from 'worker_threads';
-import axios from 'axios';
+import Axios from './AxiosProxy';
 
 if(worker_threads.isMainThread) {
 
@@ -10,12 +10,9 @@ if(worker_threads.isMainThread) {
 
 }
 
-const launcherVersion = worker_threads.workerData.launcherVersion;
 const clientCdnURL = worker_threads.workerData.clientCdnURL;
 const gameFolder = worker_threads.workerData.gameFolder;
 const queue = worker_threads.workerData.queue as string[];
-
-const USER_AGENT = `MeliusLauncher / ${launcherVersion}`;
 
 const downloadNext = () => {
 
@@ -31,12 +28,9 @@ const downloadNext = () => {
 
 	let currDownloadedSize = 0;
 
-	axios({
-		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`,
+	Axios({
 		method: 'GET',
-		headers: {
-			'User-Agent': USER_AGENT
-		},
+		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`,
 		responseType: 'stream'
 	}).then(res => {
 

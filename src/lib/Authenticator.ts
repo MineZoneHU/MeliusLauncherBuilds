@@ -1,7 +1,7 @@
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as Electron from 'electron';
-import Axios from 'axios';
+import Axios from './AxiosProxy';
 import * as Debug from './Debug';
 import * as Config from './Config';
 
@@ -51,6 +51,14 @@ const refreshToken = () => new Promise<boolean | string>(async (resolve, reject)
 		validateStatus: () => true
 	}).then(res => {
 
+		if(res.status !== 200) {
+
+			resolve(`HTTP_STATUS_${res.status}`);
+
+			return;
+
+		}
+
 		const parsedBody = JSON.parse(deobfuscate(res.data).toString());
 
 		if(!parsedBody.success) {
@@ -95,6 +103,7 @@ const login = (username : string, password : string) => new Promise<true | strin
 		if(!parsedBody.success) {
 
 			resolve(parsedBody.errorCode);
+
 			return;
 
 		}
