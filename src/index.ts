@@ -2,6 +2,7 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
 
 import * as os from 'os';
 import * as Electron from 'electron';
+import * as ElectronUpdater from 'electron-updater';
 import * as CLIArgsParser from './lib/CLIArgsParser';
 import * as Folders from './lib/Folders';
 import * as Debug from './lib/Debug';
@@ -12,6 +13,7 @@ import * as Updater from './lib/Updater';
 import * as Authenticator from './lib/Authenticator';
 import * as Launcher from './lib/Launcher';
 import * as Utils from './lib/Utils';
+import * as AxiosProxy from './lib/AxiosProxy';
 
 const supportedPlatformsAndArchitectures = {
 	darwin: [ 'x64', 'arm64' ],
@@ -37,6 +39,8 @@ if(!Electron.app.requestSingleInstanceLock()) {
 }
 
 Electron.app.once('ready', async () => {
+
+	AxiosProxy.setVersion(ElectronUpdater.autoUpdater.currentVersion.version);
 
 	try {
 

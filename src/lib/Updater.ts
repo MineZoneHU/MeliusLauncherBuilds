@@ -425,7 +425,8 @@ const downloadMissingAndMismatchingGameFiles = (comparedGameFilesIndexes : Compa
 			workerData: {
 				clientCdnURL: CLIENT_CDN_URL,
 				gameFolder: process.env.GAME_FOLDER,
-				queue: threadQueues[threadID]
+				queue: threadQueues[threadID],
+				launcherVersion: ElectronUpdater.autoUpdater.currentVersion.version
 			}
 		});
 

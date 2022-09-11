@@ -1,10 +1,13 @@
 import Axios, { AxiosRequestConfig } from 'axios';
-import * as ElectronUpdater from 'electron-updater';
+
+let version = 'unknown';
+
+export const setVersion = (version2 : string) => version = version2;
 
 export default (options : AxiosRequestConfig) => Axios({
 	...options,
 	headers: {
 		...options?.headers,
-		'user-agent': `MeliusLauncher / ${ElectronUpdater.autoUpdater.currentVersion.version}`
+		'user-agent': `MeliusLauncher / ${version}`
 	}
 });

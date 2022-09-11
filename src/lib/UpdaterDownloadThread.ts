@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import * as worker_threads from 'worker_threads';
-import Axios from './AxiosProxy';
+import * as Axios from './AxiosProxy';
 
 if(worker_threads.isMainThread) {
 
@@ -13,6 +13,9 @@ if(worker_threads.isMainThread) {
 const clientCdnURL = worker_threads.workerData.clientCdnURL;
 const gameFolder = worker_threads.workerData.gameFolder;
 const queue = worker_threads.workerData.queue as string[];
+const launcherVersion = worker_threads.workerData.launcherVersion;
+
+Axios.setVersion(launcherVersion);
 
 const downloadNext = () => {
 
@@ -28,7 +31,7 @@ const downloadNext = () => {
 
 	let currDownloadedSize = 0;
 
-	Axios({
+	Axios.default({
 		method: 'GET',
 		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`,
 		responseType: 'stream'

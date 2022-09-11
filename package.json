@@ -1,6 +1,6 @@
 {
   	"name": "melius-launcher",
-  	"version": "2.0.10",
+  	"version": "2.0.11",
   	"description": "MineZone Launcher",
   	"private": true,
   	"scripts": {
