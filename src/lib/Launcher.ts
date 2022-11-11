@@ -174,7 +174,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 						latestServerList = await fetchLatestServerList();
 
-						if(JSON.stringify(serverList) === JSON.stringify(latestServerList)) return;
+						if(Utils.areObjectsEqual(serverList, latestServerList)) return;
 
 						serverList = latestServerList;
 
@@ -369,13 +369,13 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 const fetchPlayerCount = () => {
 
-	if(launcherWindow === null) return;
+	if(launcherWindow === null || gameRunning) return;
 
 	MCPinger.ping(PING_ADDRESS, {
 		timeout: 5000
 	}).then(pingRes => {
 
-		launcherWindow.webContents.send('online-count', pingRes?.players?.online );
+		launcherWindow.webContents.send('online-count', pingRes?.players?.online);
 
 	}).catch(err => {
 		
@@ -407,8 +407,8 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 	launcherWindow.once('ready-to-show', () => {
 
-		pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
 		fetchPlayerCount();
+		pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
 
 		launcherWindow.show();
 		launcherWindow.focus();
