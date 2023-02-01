@@ -30,7 +30,7 @@ const deobfuscate = (input : Buffer) => {
 
 const refreshToken = () => new Promise<boolean | string>(async (resolve, reject) => {
 
-	if(!Config.has('authentication.refreshToken') || !Config.has('authentication.refreshToken.expiry') || Config.get('authentication.refreshToken.expiry') < Date.now() - 3 * 24 * 60 * 60 * 1000) {
+	if(!Config.has('authentication.refreshToken') || !Config.has('authentication.refreshToken.expiry') || Config.get('authentication.refreshToken.expiry') as number < Date.now() - 3 * 24 * 60 * 60 * 1000) {
         
 		resolve(false);
 

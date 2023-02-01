@@ -32,14 +32,14 @@ export const init = () => new Promise<void>((resolve, reject) => {
 const _encrypt = (buf : Buffer) => new Promise<Buffer>((resolve, reject) => {
 	const iv = crypto.randomBytes(ENCRYPTION_IV_SIZE);
 	const cipher = crypto.createCipheriv(ENCRYPTION_ALGORITHM, encryptionKey, iv);
-	cipher.on('error', reject);
+	cipher.once('error', reject);
 	resolve(Buffer.concat([ crypto.randomBytes(ENCRYPTION_JUNK_BYTE_COUNT), iv, crypto.randomBytes(ENCRYPTION_JUNK_BYTE_COUNT), cipher.update(buf), cipher.final(), crypto.randomBytes(ENCRYPTION_JUNK_BYTE_COUNT) ]));
 });
 
 const _decrypt = (buf : Buffer) => new Promise<Buffer>((resolve, reject) => {
 	const iv = buf.slice(ENCRYPTION_JUNK_BYTE_COUNT, ENCRYPTION_JUNK_BYTE_COUNT + ENCRYPTION_IV_SIZE);
 	const decipher = crypto.createDecipheriv(ENCRYPTION_ALGORITHM, encryptionKey, iv);
-	decipher.on('error', reject);
+	decipher.once('error', reject);
 	resolve(Buffer.concat([ decipher.update(buf.slice(ENCRYPTION_JUNK_BYTE_COUNT + ENCRYPTION_IV_SIZE + ENCRYPTION_JUNK_BYTE_COUNT, buf.byteLength - ENCRYPTION_JUNK_BYTE_COUNT)), decipher.final() ]));
 });
 

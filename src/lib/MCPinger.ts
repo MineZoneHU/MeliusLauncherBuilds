@@ -416,7 +416,6 @@ const _ping = (next : () => ResolvedAddress, options? : PingOptions, hops = 0) =
 
 export const ping = (address : string, options? : PingOptions) => new Promise<PingResponse>((resolve, reject) => {
 	_resolveAddress(address).then(resolvedAddresses => {
-		if(address.includes('pbl')) console.log(resolvedAddresses);
 		const addressQueue = resolvedAddresses;
 		const addressGen = () => addressQueue.shift();
 		_ping(addressGen, options).then(resolve).catch(reject);

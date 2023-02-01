@@ -16,7 +16,7 @@ window.addEventListener('load', function() {
 
 	memorySettingSlider.addEventListener('mousemove', function(event) {
 
-		if(interactionsDisabled || !receivedUserData || event.target.value === currentMemorySetting) return;
+		if(interactionsDisabled || !receivedUserData || parseInt(event.target.value) === currentMemorySetting) return;
 
 		currentMemorySetting = parseInt(event.target.value);
 		memorySettingSliderValueLabel.innerHTML = currentMemorySetting + ' MiB';
@@ -177,11 +177,11 @@ window.addEventListener('load', function() {
 
 	const onlineCountLabel = this.document.getElementById('online-count-label');
 
-	ipcRenderer.on('online-count', function(event, onlineCount) {
+	/*ipcRenderer.on('online-count', function(event, onlineCount) {
 
 		onlineCountLabel.innerHTML = (isNaN(onlineCount) || onlineCount < 0) ? 0 : onlineCount; 
 
-	});
+	});*/
 
 	ipcRenderer.on('game-exit', function(event) {
 

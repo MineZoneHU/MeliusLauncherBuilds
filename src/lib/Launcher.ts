@@ -1,4 +1,5 @@
 import * as os from 'os';
+import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 import * as childProcess from 'child_process';
@@ -18,12 +19,13 @@ import { ServerList } from './ServerList';
 const MIN_ALLOCATABLE_MEMORY = 1024;
 const MAX_ALLOCATABLE_MEMORY = Math.min(8, Math.ceil(os.totalmem() / Math.pow(2, 31))) * Math.pow(2, 10);
 const API_URL = 'https://melius-api.minezone.hu';
-const PING_ADDRESS = 'play.minezone.hu';
+const PING_ADDRESS = 'launcher-ping.minezone.hu';
 
 let launcherWindow : Electron.BrowserWindow;
 let serverList : ServerList = { trusted: [], untrusted: [] };
 
-let pingerTask = null;
+// eslint-disable-next-line prefer-const
+let pingerTask = null; // TODO: Patch pinging
 
 const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reject) => {
 
@@ -231,19 +233,21 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	serverList = await fetchLatestServerList();
 
+	const gameVersion = /^(?<version>\d+(?:\.\d+)*)\.json$/.exec(fs.readdirSync(path.resolve(process.env.GAME_FOLDER, 'assets/indexes/'))[0])?.groups?.version ?? '1.0.0';
+
 	const clientProcessArgs = [
 		os.platform() === 'darwin' ? '-XstartOnFirstThread' : null,
-		`-Djava.library.path=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'lib/'))}`,
-		`-Dorg.lwjgl.librarypath=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'lib/'))}`,
+		`-Djava.library.path=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
+		`-Dorg.lwjgl.librarypath=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
 		'-DFabricMcEmu=net.minecraft.client.main.Main',
 		'-Dminecraft.launcher.brand=melius-launcher',
 		`-Dminecraft.launcher.version=${ElectronUpdater.autoUpdater.currentVersion.version}`,
-		`-Dminecraft.client.jar=${putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'client.jar'))}`,
+		`-Dminecraft.client.jar=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'client.jar')))}`,
 		'-Dlog4j2.formatMsgNoLookups=true',
 		'-classpath',
 		[
-			...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'libraries/')),
-			path.resolve(process.env.GAME_FOLDER, 'client.jar')
+			...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'libraries/')).map(filePath => path.relative(process.env.GAME_FOLDER, filePath)),
+			path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'client.jar'))
 		].map(putInQuotationMarksIfNeeded).join(path.delimiter),
 		`-Xms${Config.get('settings.clientJVMMemory') as number}M`,
 		`-Xmx${Config.get('settings.clientJVMMemory') as number}M`,
@@ -265,13 +269,13 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		'--uuid',
 		Authenticator.generateUUID(),
 		'--version',
-		'1.18.1',
+		gameVersion,
 		'--gameDir',
-		putInQuotationMarksIfNeeded(process.env.GAME_FOLDER),
+		'.',
 		'--assetsDir',
-		putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'assets/')),
+		putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'assets/'))),
 		'--assetIndex',
-		'1.18',
+		gameVersion,
 		'--userType',
 		'mojang',
 		'--versionType',
@@ -407,8 +411,8 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 	launcherWindow.once('ready-to-show', () => {
 
-		fetchPlayerCount();
-		pingerTask = setInterval(fetchPlayerCount, 10 * 1000);
+		/*fetchPlayerCount();
+		pingerTask = setInterval(fetchPlayerCount, 10 * 1000);*/
 
 		launcherWindow.show();
 		launcherWindow.focus();
@@ -419,11 +423,11 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 		Debug.log('Launcher', 'Listening for launcher events...');
 
-		if(Config.get('settings.clientJVMMemory') < MIN_ALLOCATABLE_MEMORY) {
+		if(Config.get('settings.clientJVMMemory') as number < MIN_ALLOCATABLE_MEMORY) {
 
 			Config.set('settings.clientJVMMemory', MIN_ALLOCATABLE_MEMORY);
 
-		} else if(Config.get('settings.clientJVMMemory') > MAX_ALLOCATABLE_MEMORY) {
+		} else if(Config.get('settings.clientJVMMemory') as number > MAX_ALLOCATABLE_MEMORY) {
 
 			Config.set('settings.clientJVMMemory', MAX_ALLOCATABLE_MEMORY);
 
@@ -487,12 +491,12 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 
 					launcherWindow = null;
 
-					if(pingerTask !== null) {
+					/*if(pingerTask !== null) {
 						
 						clearInterval(pingerTask);
 						pingerTask = null;
 
-					}
+					}*/
 
 					resolve();
                     

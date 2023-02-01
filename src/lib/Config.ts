@@ -85,10 +85,7 @@ export const set = (key : string, val : unknown) => {
 
 export const has = (key : string, includeDefault  = true) : boolean => {
 
-	if(config[key]) return true;
-	else if(includeDefault) return DEFAULT_CONFIG[key] !== undefined;
-
-	return false;
+	return config[key] !== undefined || (includeDefault && DEFAULT_CONFIG[key] !== undefined);
 
 };
 
