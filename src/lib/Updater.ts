@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as worker_threads from 'worker_threads';
 import * as Electron from 'electron';
 import * as ElectronUpdater from 'electron-updater';
+import { AxiosResponse } from 'axios';
 import Axios from './AxiosProxy';
 import * as Debug from './Debug';
 import * as Config from './Config';
@@ -27,35 +28,34 @@ ElectronUpdater.autoUpdater.setFeedURL({
 });
 ElectronUpdater.autoUpdater.autoDownload = false;
 
-const collectGameFiles = () => new Promise<string[]>((resolve, reject) => {
+const collectGameFiles = () => new Promise<string[]>(async (resolve, reject) => {
 
-	const ignoredGameFiles = new Set([
-		path.resolve(process.env.GAME_FOLDER, 'config.bin'),
-		path.resolve(process.env.GAME_FOLDER, 'debug.log'),
-		path.resolve(process.env.GAME_FOLDER, 'encryption_key.bin'),
-		path.resolve(process.env.GAME_FOLDER, 'options.txt'),
-		path.resolve(process.env.GAME_FOLDER, 'optionsof.txt'),
-		path.resolve(process.env.GAME_FOLDER, 'optionsshaders.txt'),
-		path.resolve(process.env.GAME_FOLDER, 'servers.dat'),
-		path.resolve(process.env.GAME_FOLDER, 'servers.dat_old'),
-		path.resolve(process.env.GAME_FOLDER, 'usercache.json'),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, '.fabric')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, '.optifine')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'config')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'crash-reports')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'CustomSkinLoader')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'logs')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'resourcepacks')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'resources')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'saves')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'screenshots')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'server-resource-packs')),
-		...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'shaderpacks'))
-	]);
+	const ignoredPatterns : ({ pattern: string, flags: string })[] = (await Axios({
+		url: `${CLIENT_CDN_URL}/gameFilesVerificationIgnoredPatterns.json`,
+		responseType: 'json'
+	}).catch(reject) as AxiosResponse)?.data;
 
-	ignoredGameFiles.delete(path.resolve(process.env.GAME_FOLDER, 'CustomSkinLoader', 'CustomSkinLoader.json'));
+	if(ignoredPatterns === null) return;
 
-	resolve(Utils.collectFiles(process.env.GAME_FOLDER).filter(filter => !ignoredGameFiles.has(filter)));
+	const unignoredPatterns : ({ pattern: string, flags: string })[] = (await Axios({
+		url: `${CLIENT_CDN_URL}/gameFilesVerificationUnignoredPatterns.json`,
+		responseType: 'json'
+	}).catch(reject) as AxiosResponse)?.data;
+
+	if(unignoredPatterns === null) return;
+
+	const compiledIgnoredPatterns = ignoredPatterns.map(({ pattern, flags }) => new RegExp(pattern, flags));
+	const compiledUnignoredPatterns = unignoredPatterns.map(({ pattern, flags }) => new RegExp(pattern, flags));
+
+	const unfilteredGameFiles = Utils.collectFiles(process.env.GAME_FOLDER);
+	const unfilteredGameFilesRelativeToGameFolder = unfilteredGameFiles.map(file => '/' + path.relative(process.env.GAME_FOLDER, file).split(path.sep).join('/'));
+	
+	const unignoredGameFiles = new Set(unfilteredGameFilesRelativeToGameFolder.filter(file => compiledUnignoredPatterns.some(pattern => pattern.test(file))));
+	const ignoredGameFiles = new Set(unfilteredGameFiles.filter((_, i) => !unignoredGameFiles.has(unfilteredGameFilesRelativeToGameFolder[i]) && compiledIgnoredPatterns.some(pattern => pattern.test(unfilteredGameFilesRelativeToGameFolder[i]))));
+
+	const filteredGameFiles = unfilteredGameFiles.filter(file => !ignoredGameFiles.has(file));
+
+	resolve(filteredGameFiles);
 
 });
 
