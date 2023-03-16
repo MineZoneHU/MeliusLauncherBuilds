@@ -28,7 +28,6 @@
             {
                 "target": "nsis",
                 "arch": [
-                    "ia32",
                     "x64",
                     "arm64"
                 ]
@@ -58,7 +57,6 @@
             {
                 "target": "AppImage",
                 "arch": [
-                    "ia32",
                     "x64",
                     "arm64"
                 ]

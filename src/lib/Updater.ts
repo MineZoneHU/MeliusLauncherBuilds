@@ -644,8 +644,6 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
         
 	});
 
-	updaterWindow.once('close', () => Electron.app.exit());
-
 	await updaterWindow.loadFile(path.resolve(__dirname, '../', 'static/', 'updater.html')).catch(reject);
 
 });

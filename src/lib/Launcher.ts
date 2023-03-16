@@ -70,8 +70,6 @@ const fetchLatestServerList = () => new Promise<ServerList>(async (resolve, reje
 
 });
 
-const putInQuotationMarksIfNeeded = (input : string) : string => /\s/.test(input) ? `"${input}"` : input;
-
 let gameRunning = false;
 
 const launchGame = () => new Promise<void>(async (resolve, reject) => {
@@ -237,18 +235,18 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 
 	const clientProcessArgs = [
 		os.platform() === 'darwin' ? '-XstartOnFirstThread' : null,
-		`-Djava.library.path=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
-		`-Dorg.lwjgl.librarypath=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
+		`-Djava.library.path=${Utils.putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
+		`-Dorg.lwjgl.librarypath=${Utils.putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'lib/')))}`,
 		'-DFabricMcEmu=net.minecraft.client.main.Main',
 		'-Dminecraft.launcher.brand=melius-launcher',
 		`-Dminecraft.launcher.version=${ElectronUpdater.autoUpdater.currentVersion.version}`,
-		`-Dminecraft.client.jar=${putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'client.jar')))}`,
+		`-Dminecraft.client.jar=${Utils.putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'client.jar')))}`,
 		'-Dlog4j2.formatMsgNoLookups=true',
 		'-classpath',
 		[
 			...Utils.collectFiles(path.resolve(process.env.GAME_FOLDER, 'libraries/')).map(filePath => path.relative(process.env.GAME_FOLDER, filePath)),
 			path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'client.jar'))
-		].map(putInQuotationMarksIfNeeded).join(path.delimiter),
+		].map(Utils.putInQuotationMarksIfNeeded).join(path.delimiter),
 		`-Xms${Config.get('settings.clientJVMMemory') as number}M`,
 		`-Xmx${Config.get('settings.clientJVMMemory') as number}M`,
 		`-Xmn${Math.floor((Config.get('settings.clientJVMMemory') as number) * 0.375)}M`,
@@ -273,7 +271,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 		'--gameDir',
 		'.',
 		'--assetsDir',
-		putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'assets/'))),
+		Utils.putInQuotationMarksIfNeeded(path.relative(process.env.GAME_FOLDER, path.resolve(process.env.GAME_FOLDER, 'assets/'))),
 		'--assetIndex',
 		gameVersion,
 		'--userType',
@@ -292,7 +290,7 @@ const launchGame = () => new Promise<void>(async (resolve, reject) => {
 	}
 
 	const clientProcess = childProcess.spawn(
-		putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'jre/', 'bin/', os.platform() === 'win32' ? 'javaw.exe' : 'java')),
+		Utils.putInQuotationMarksIfNeeded(path.resolve(process.env.GAME_FOLDER, 'jre/', 'bin/', os.platform() === 'win32' ? 'javaw.exe' : 'java')),
 		clientProcessArgs,
 		{
 			cwd: process.env.GAME_FOLDER,
@@ -483,7 +481,9 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 					launcherWindow.removeAllListeners('close');
 
 					Config.remove('authentication.refreshToken');
+					Config.remove('authentication.refreshToken.expiry');
 					Config.remove('authentication.accessToken');
+					Config.remove('authentication.accessToken.expiry');
 					Config.remove('authentication.username');
 
 					launcherWindow.hide();
@@ -524,8 +524,6 @@ export const start = () => new Promise<void>(async (resolve, reject) => {
 		});
         
 	});
-
-	launcherWindow.once('close', () => Electron.app.exit());
 
 	await launcherWindow.loadFile(path.resolve(__dirname, '../', 'static/', 'launcher.html')).catch(reject);
     

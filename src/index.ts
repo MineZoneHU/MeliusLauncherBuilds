@@ -14,15 +14,18 @@ import * as Authenticator from './lib/Authenticator';
 import * as Launcher from './lib/Launcher';
 import * as Utils from './lib/Utils';
 import * as AxiosProxy from './lib/AxiosProxy';
+import * as GPUList from './lib/GPUList';
 
 const supportedPlatformsAndArchitectures = {
 	darwin: [ 'x64', 'arm64' ],
-	win32: [ 'ia32', 'x64', 'arm64' ]
+	win32: [ 'x64', 'arm64' ]
 };
 
-if(supportedPlatformsAndArchitectures[os.platform()] === undefined || !supportedPlatformsAndArchitectures[os.platform()].includes(os.arch())) {
+const osPlatform = os.platform(), osArch = os.arch(), osVersion = os.version(), osTotalmem = os.totalmem(), osFreemem = os.freemem();
 
-	Electron.dialog.showErrorBox('Nem támogatott rendszer', `Ez a platform (${os.platform()}) és/vagy architektúra (${os.arch()}) sajnos nem támogatott!`);
+if(supportedPlatformsAndArchitectures[osPlatform] === undefined || !supportedPlatformsAndArchitectures[osPlatform].includes(osArch)) {
+
+	Electron.dialog.showErrorBox('Nem támogatott rendszer', `Ez a platform (${osPlatform}) és/vagy architektúra (${osArch}) sajnos nem támogatott!`);
 
 	Electron.app.exit(1);
 	process.exit(1);
@@ -42,6 +45,13 @@ Electron.app.once('ready', async () => {
 
 	AxiosProxy.setVersion(ElectronUpdater.autoUpdater.currentVersion.version);
 
+	Electron.ipcMain.once('exit-app', () => {
+
+		Electron.app.exit(0);
+		process.exit(0);
+
+	});
+
 	try {
 
 		CLIArgsParser.parse();
@@ -52,11 +62,21 @@ Electron.app.once('ready', async () => {
 
 		Debug.log('Main', `Process started at ${(new Date(Date.now() - process.uptime() * 1000)).toISOString()}`);
 		Debug.log('Main', 'System information:');
-		Debug.log('Main', `- OS: ${os.version()} (${os.arch()})`);
-		Debug.log('Main', `- Total memory: ${Utils.bytesToHuman(os.totalmem())} (${os.totalmem()} B)`);
-		Debug.log('Main', `- Free memory: ${Utils.bytesToHuman(os.freemem())} (${os.freemem()} B)`);
-		Debug.log('Main', `- CPUs (${os.cpus().length}):\n${os.cpus().reduce((text, cpu, i) => `${text}   ${i + 1}. - ${cpu.model} (${cpu.speed / 1000} GHz)\n`, '')}`);
-
+		Debug.log('Main', `- OS: ${osVersion} (${osPlatform}, ${osArch})`);
+		Debug.log('Main', `- Total memory: ${Utils.bytesToHuman(osTotalmem)} (${osTotalmem} B)`);
+		Debug.log('Main', `- Free memory: ${Utils.bytesToHuman(osFreemem)} (${osFreemem} B)`);
+		const cpus = os.cpus();
+		const cpuCountLength = Math.floor(Math.log10(cpus.length - 1)) + 1;
+		Debug.log('Main', `- CPUs (${cpus.length}):`);
+		let i = 0;
+		for(const cpu of cpus) Debug.log('Main', `\t${(++i).toString().padStart(cpuCountLength, '0')}. - ${cpu.model} (${cpu.speed / 1000} Ghz)`);
+		if(osPlatform === 'win32') {
+			const gpus = GPUList.getGPUs();
+			const gpuCountLength = Math.floor(Math.log10(gpus.length - 1)) + 1;
+			Debug.log('Main', `- GPUs (${gpus.length}):`);
+			i = 0;
+			for(const gpu of gpus) Debug.log('Main', `\t${(++i).toString().padStart(gpuCountLength, '0')}. - ${gpu}`);
+		}
 		Debug.log('Main', 'Registering the global shortcuts...');
 		await GlobalShortcuts.registerShortcuts();
 		Debug.log('Main', 'Registered the global shortcuts!');
@@ -96,7 +116,9 @@ Electron.app.once('ready', async () => {
 
 });
 
-Electron.app.on('will-quit', event => event.preventDefault());
+Electron.app.on('will-quit', event => {
+	event.preventDefault();
+});
 
 process.on('uncaughtException', err => {
 

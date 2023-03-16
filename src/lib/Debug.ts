@@ -5,10 +5,14 @@ import * as path from 'path';
 let logFileWriteStream : fs.WriteStream;
 
 export const init = () : void => {
+	
+	const debugLogPath = path.resolve(process.env.GAME_FOLDER, 'debug.log');
 
-	logFileWriteStream = fs.createWriteStream(path.resolve(process.env.GAME_FOLDER, 'debug.log'), {
+	if(fs.existsSync(debugLogPath) && !fs.statSync(debugLogPath).isFile()) fs.unlinkSync(debugLogPath);
+
+	logFileWriteStream = fs.createWriteStream(debugLogPath, {
 		flags: 'a',
-		mode: 0o700
+		mode: 0o770
 	});
 
 };

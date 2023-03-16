@@ -293,11 +293,12 @@ body {
 }
 
 #settings-box-subtitle {
-    width: fit-content;
+    width: 100%;
     position: fixed;
     top: 85px;
     left: 50%;
     transform: translateX(-50%);
+    text-align: center;
     font-size: 17px;
     font-weight: 400;
 }

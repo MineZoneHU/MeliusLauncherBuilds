@@ -93,4 +93,6 @@ export const remove = (key : string) : void => {
 
 	delete config[key];
 
+	saveConfig();
+
 };

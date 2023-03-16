@@ -33,11 +33,11 @@ export const areArraysEqual = (arrayA : unknown[], arrayB : unknown[]) : boolean
 
 			if(Array.isArray(arrayA[i])) {
 
-				if(!Array.isArray(arrayB[i]) || !areArraysEqual(arrayA[i], arrayB[i])) return false;
+				if(!Array.isArray(arrayB[i]) || !areArraysEqual(arrayA[i] as unknown[], arrayB[i] as unknown[])) return false;
 
 			} else {
 
-				if(Array.isArray(arrayB[i]) || !areObjectsEqual(arrayA[i], arrayB[i])) return false;
+				if(Array.isArray(arrayB[i]) || !areObjectsEqual(arrayA[i] as object, arrayB[i] as object)) return false;
 				
 			}
 
@@ -188,4 +188,18 @@ export const collectFiles = (dirPath : string) : string[] => {
 	}
     
 	return collectedFiles;
+
 };
+
+export const putInQuotationMarksIfNeeded = (input : string) : string => /\s/.test(input) ? `"${input}"` : input;
+
+export const waitForFile = (path : string, checkInterval = 200) => new Promise<void>(async (resolve, reject) => {
+	
+	if(fs.existsSync(path)) {
+		resolve();
+		return;
+	}
+
+	setTimeout(() => waitForFile(path, checkInterval).then(resolve), checkInterval);
+
+});
