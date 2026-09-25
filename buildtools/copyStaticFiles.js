@@ -20,4 +20,3 @@ copyFolderRecursivelySync(path.resolve(__dirname, '../', 'src/', 'static/'), pat
 copyFolderRecursivelySync(path.resolve(__dirname, '../', 'src/', 'etc/'), path.resolve(__dirname, '../', 'build/', 'etc/'));
 copyFileSync(path.resolve(__dirname, '../', 'package.json'), path.resolve(__dirname, '../', 'build/', 'package.json'));
 copyFileSync(path.resolve(__dirname, '../', 'app-update.yml'), path.resolve(__dirname, '../', 'build/', 'app-update.yml'));
-//copyFileSync(path.resolve(__dirname, '../', 'dev-app-update.yml'), path.resolve(__dirname, '../', 'build/', 'dev-app-update.yml'));

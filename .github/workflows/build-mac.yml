@@ -1,0 +1,44 @@
+name: Build MineZone Launcher (macOS)
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+
+jobs:
+  build-mac:
+    name: Build macOS DMG (x64 & arm64)
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build frontend & TypeScript
+        run: npm run build
+
+      - name: Package macOS DMG
+        run: npx electron-builder --config electron-builder.json -m --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+
+      - name: Upload DMG Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: MineZone-macOS-Installer
+          path: dist/*.dmg
+          if-no-files-found: error

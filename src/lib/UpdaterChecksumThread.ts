@@ -22,7 +22,7 @@ const checksumNext = () => {
 
 	}
 
-	const nextPath = path.resolve(gameFolder, next);
+	const nextPath = path.isAbsolute(next) ? next : (gameFolder ? path.resolve(gameFolder, next) : path.resolve(next));
 
 	if(!fs.existsSync(nextPath)) {
 

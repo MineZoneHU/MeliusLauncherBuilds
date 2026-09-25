@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MineZone Cyber-Glass Social</title>
+    <link rel="stylesheet" href="css/fonts.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="css/social_overlay.css">
+</head>
+<body>
+    <div id="overlay-backdrop" class="overlay-backdrop">
+        
+        <!-- TOP DOCK CAPSULE -->
+        <header class="top-dock">
+            <div class="dock-left">
+                <div class="brand-logo">
+                    <span class="logo-accent">MINE</span>ZONE
+                </div>
+                <div class="server-pill">
+                    <span class="pulse-dot"></span>
+                    <span class="server-name">play.minezone.hu</span>
+                    <span class="server-ping">18ms</span>
+                </div>
+            </div>
+
+            <div class="dock-center">
+                <button class="filter-tab active" data-tab="all">
+                    <span>Összes Barát</span>
+                    <span class="badge" id="badge-all">0</span>
+                </button>
+                <button class="filter-tab" data-tab="ingame">
+                    <span>Játékban</span>
+                    <span class="badge" id="badge-ingame">0</span>
+                </button>
+                <button class="filter-tab" data-tab="requests">
+                    <span>Kérelmek</span>
+                    <span class="badge" id="badge-reqs">0</span>
+                </button>
+            </div>
+
+            <div class="dock-right">
+                <div class="esc-hint"><kbd>ESC</kbd> Bezárás</div>
+                <button id="btn-close-overlay" class="icon-btn close-btn" title="Bezárás">✕</button>
+            </div>
+        </header>
+
+        <!-- MAIN SOCIAL CONTAINER -->
+        <main class="social-container">
+
+            <!-- LEFT MATRIX PANEL: USER PROFILE & FRIENDS -->
+            <section class="left-panel glass-card">
+                
+                <!-- USER PROFILE CARD -->
+                <div class="user-card">
+                    <div class="avatar-wrapper">
+                        <img src="https://cdn.minezone.hu/skins/default.png" id="user-avatar" class="avatar-img" alt="Avatar" onerror="this.src='img/launcher/steve.png'">
+                        <span class="status-indicator online"></span>
+                    </div>
+                    <div class="user-info">
+                        <div class="name-row">
+                            <span class="username" id="current-username">TheLeventhe</span>
+                            <span class="rank-tag rank-admin" id="own-rank-tag">ADMIN</span>
+                        </div>
+                        <div class="user-status-text">
+                            <span class="status-dot"></span>
+                            <span id="user-activity">MineZone • Lobby</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEARCH & ADD BAR -->
+                <div class="search-bar-row">
+                    <div class="search-input-box">
+                        <span class="search-icon">🔍</span>
+                        <input type="text" id="friend-search-input" placeholder="Barát keresése / hozzáadása..." autocomplete="off">
+                    </div>
+                    <button id="btn-add-friend" class="action-btn-primary" title="Barát felvétele">+</button>
+                </div>
+
+                <!-- FRIENDS ACCORDION LIST -->
+                <div class="friends-scroll-area" id="friends-list">
+                    <!-- Dynamic categories and friends will be inserted here -->
+                </div>
+            </section>
+
+            <!-- CENTER-RIGHT FLOATING CHAT SANCTUARY -->
+            <section class="chat-panel glass-card" id="chat-panel">
+                
+                <!-- ACTIVE FRIEND HEADER -->
+                <div class="chat-header">
+                    <div class="chat-friend-meta">
+                        <div class="avatar-wrapper mini">
+                            <img src="https://cdn.minezone.hu/skins/default.png" id="active-friend-avatar" class="avatar-img" onerror="this.src='img/launcher/steve.png'">
+                            <span class="status-indicator" id="active-friend-status-dot"></span>
+                        </div>
+                        <div class="chat-friend-info">
+                            <div class="name-row">
+                                <span class="active-friend-name" id="active-friend-name">Válassz barátot...</span>
+                                <span class="rank-tag rank-player" id="active-friend-rank">TAG</span>
+                            </div>
+                            <span class="active-friend-status-text" id="active-friend-status">Offline</span>
+                        </div>
+                    </div>
+
+                    <div class="chat-header-actions">
+                        <button class="chat-action-btn" id="btn-party-invite" title="Meghívás Partiba">⚔️ Parti</button>
+                        <button class="chat-action-btn" id="btn-clear-chat" title="Chat bezárása">✕</button>
+                    </div>
+                </div>
+
+                <!-- MESSAGES STREAM -->
+                <div class="messages-viewport" id="messages-container">
+                    <div class="empty-chat-placeholder" id="empty-chat-placeholder">
+                        <div class="empty-icon">💬</div>
+                        <h3>Kezdj el beszélgetni!</h3>
+                        <p>Válassz ki egy barátot a bal oldali listából, és írj neki üzenetet.</p>
+                    </div>
+                </div>
+
+                <!-- FLOATING INPUT CAPSULE -->
+                <div class="chat-input-bar">
+                    <input type="text" id="chat-input" placeholder="Írj üzenetet..." autocomplete="off">
+                    <div class="input-actions">
+                        <button class="emoji-btn" id="btn-emoji-quick" title="Gyors reakció">🔥</button>
+                        <button class="send-btn" id="btn-send-message" title="Üzenet küldése">
+                            <span>Küldés</span>
+                            <span class="send-arrow">➤</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/social_overlay.js"></script>
+</body>
+</html>

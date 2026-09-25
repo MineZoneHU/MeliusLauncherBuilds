@@ -75,10 +75,8 @@ window.addEventListener('load', function() {
 
 		closeBtn.addEventListener('click', function(event) {
 
-			ipcRenderer.send('exit-app', null);
-
 			event.preventDefault();
-			window.close();
+			ipcRenderer.send('exit-app', null);
 
 		});
 

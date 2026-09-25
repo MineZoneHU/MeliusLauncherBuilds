@@ -9,10 +9,11 @@ import Axios from './AxiosProxy';
 import * as Debug from './Debug';
 import * as Config from './Config';
 import * as Utils from './Utils';
+import * as JavaManager from './JavaManager';
 import { GameFilesIndex } from './GameFilesIndex';
 import { ComparedGameFilesIndexes } from './ComparedGameFilesIndexes';
 
-const CLIENT_CDN_URL = 'https://melius-client-cdn.minezone.hu';
+const CLIENT_CDN_URL = 'https://cdn.minezone.hu';
 
 const CHECKSUM_THREAD_WORKER_PATH = path.resolve(__dirname, 'UpdaterChecksumThread.js');
 const DOWNLOAD_THREAD_WORKER_PATH = path.resolve(__dirname, 'UpdaterDownloadThread.js');
@@ -22,11 +23,11 @@ let updaterWindow : Electron.BrowserWindow;
 let latestGameFilesIndex : GameFilesIndex;
 
 ElectronUpdater.autoUpdater.setFeedURL({
-	provider: 'github',
-	owner: 'MineZoneHU',
-	repo: 'MeliusLauncherBuilds'
+	provider: 'generic',
+	url: 'https://cdn.minezone.hu/launcher/'
 });
 ElectronUpdater.autoUpdater.autoDownload = false;
+(ElectronUpdater.autoUpdater as any).disableDifferentialDownload = true;
 
 const collectGameFiles = () => new Promise<string[]>(async (resolve, reject) => {
 
@@ -47,13 +48,18 @@ const collectGameFiles = () => new Promise<string[]>(async (resolve, reject) => 
 	const compiledIgnoredPatterns = ignoredPatterns.map(({ pattern, flags }) => new RegExp(pattern, flags));
 	const compiledUnignoredPatterns = unignoredPatterns.map(({ pattern, flags }) => new RegExp(pattern, flags));
 
+	const isProtectedSystemFile = (relPath: string) => {
+		const lower = relPath.toLowerCase();
+		return lower.startsWith('/jre/') || lower === '/jre_temp.zip';
+	};
+
 	const unfilteredGameFiles = Utils.collectFiles(process.env.GAME_FOLDER);
 	const unfilteredGameFilesRelativeToGameFolder = unfilteredGameFiles.map(file => '/' + path.relative(process.env.GAME_FOLDER, file).split(path.sep).join('/'));
 	
-	const unignoredGameFiles = new Set(unfilteredGameFilesRelativeToGameFolder.filter(file => compiledUnignoredPatterns.some(pattern => pattern.test(file))));
-	const ignoredGameFiles = new Set(unfilteredGameFiles.filter((_, i) => !unignoredGameFiles.has(unfilteredGameFilesRelativeToGameFolder[i]) && compiledIgnoredPatterns.some(pattern => pattern.test(unfilteredGameFilesRelativeToGameFolder[i]))));
+	const unignoredGameFiles = new Set(unfilteredGameFilesRelativeToGameFolder.filter(file => !isProtectedSystemFile(file) && compiledUnignoredPatterns.some(pattern => pattern.test(file))));
+	const ignoredGameFiles = new Set(unfilteredGameFiles.filter((_, i) => isProtectedSystemFile(unfilteredGameFilesRelativeToGameFolder[i]) || (!unignoredGameFiles.has(unfilteredGameFilesRelativeToGameFolder[i]) && compiledIgnoredPatterns.some(pattern => pattern.test(unfilteredGameFilesRelativeToGameFolder[i])))));
 
-	const filteredGameFiles = unfilteredGameFiles.filter(file => !ignoredGameFiles.has(file));
+	const filteredGameFiles = unfilteredGameFiles.filter((file, i) => !isProtectedSystemFile(unfilteredGameFilesRelativeToGameFolder[i]) && !ignoredGameFiles.has(file));
 
 	resolve(filteredGameFiles);
 
@@ -99,6 +105,7 @@ const createGameFilesIndex = (gameFiles : string[]) => new Promise<GameFilesInde
 		const thread = new worker_threads.Worker(CHECKSUM_THREAD_WORKER_PATH, {
 			workerData: {
 				id: threadID,
+				gameFolder: process.env.GAME_FOLDER,
 				queue: threadQueues[threadID]
 			}
 		});
@@ -232,8 +239,12 @@ const purgeExtraAndMismatchingGameFiles = (comparedGameFilesIndexes : ComparedGa
 	updaterWindow.setProgressBar(0);
     
 	const purgeQueue = [
-		...Object.keys(comparedGameFilesIndexes.extra).map(key => path.resolve(process.env.GAME_FOLDER, '.' + key)),
-		...Object.keys(comparedGameFilesIndexes.mismatching).map(key => path.resolve(process.env.GAME_FOLDER, '.' + key))
+		...Object.keys(comparedGameFilesIndexes.extra)
+			.filter(key => !key.toLowerCase().startsWith('/jre/') && key.toLowerCase() !== '/jre_temp.zip')
+			.map(key => path.resolve(process.env.GAME_FOLDER, '.' + key)),
+		...Object.keys(comparedGameFilesIndexes.mismatching)
+			.filter(key => !key.toLowerCase().startsWith('/jre/') && key.toLowerCase() !== '/jre_temp.zip')
+			.map(key => path.resolve(process.env.GAME_FOLDER, '.' + key))
 	];
 
 	let purgeQueueLength = purgeQueue.length;
@@ -519,13 +530,24 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 		show: false,
 		webPreferences: {
 			preload: path.resolve(__dirname, '../', 'static/', 'js/', 'preload.js'),
+			nodeIntegration: false,
 			contextIsolation: true,
+			sandbox: true,
 			devTools: false
 		}
 	});
 
+	const forceShowTimeout = setTimeout(() => {
+		if (updaterWindow && !updaterWindow.isDestroyed() && !updaterWindow.isVisible()) {
+			Debug.log('Updater', 'Forcing updaterWindow.show() after ready-to-show timeout');
+			updaterWindow.show();
+			updaterWindow.focus();
+		}
+	}, 2000);
+
 	updaterWindow.once('ready-to-show', () => {
 
+		clearTimeout(forceShowTimeout);
 		updaterWindow.show();
 		updaterWindow.focus();
         
@@ -539,7 +561,89 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
 		updaterWindow.webContents.send('status-progress-update', 0);
 		updaterWindow.setProgressBar(0);
 
-		ElectronUpdater.autoUpdater.once('error', reject);
+		const runGameFilesUpdate = async () => {
+			try {
+				Debug.log('Updater', 'Checking game files...');
+				updaterWindow.webContents.send('status-label-update', 'Játékfrissítések keresése...');
+				updaterWindow.webContents.send('status-progress-update', 0);
+				updaterWindow.setProgressBar(0);
+
+				Debug.log('Updater', 'Collecting game files...');
+				const gameFiles = (await collectGameFiles().catch(reject)) as string[];
+				Debug.log('Updater', 'Collected game files');
+
+				Debug.log('Updater', 'Creating game files index...');
+				const gameFilesIndex = (await createGameFilesIndex(gameFiles as string[]).catch(reject)) as GameFilesIndex;
+				Debug.log('Updater', 'Created game files index');
+
+				Debug.log('Updater', 'Fetching the latest game files index...');
+				latestGameFilesIndex = (await fetchLatestGameFilesIndex().catch(reject)) as GameFilesIndex;
+				Debug.log('Updater', 'Fetched the latest game files index');
+
+				Debug.log('Updater', 'Comparing the current game files index with the latest game files index...');
+				const comparedGameFileIndexes = (await compareGameFilesIndexes(gameFilesIndex, latestGameFilesIndex).catch(reject)) as ComparedGameFilesIndexes;
+				Debug.log('Updater', 'Compared the current game files index with the latest game files index:');
+				Debug.log('Updater', `Found ${Object.keys(comparedGameFileIndexes.extra).length} extra, ${Object.keys(comparedGameFileIndexes.missing).length} missing, ${Object.keys(comparedGameFileIndexes.mismatching).length} mismatching and ${Object.keys(comparedGameFileIndexes.matching).length} matching files`);
+
+				const missingCount = Object.keys(comparedGameFileIndexes.missing).length;
+				const mismatchCount = Object.keys(comparedGameFileIndexes.mismatching).length;
+				const extraCount = Object.keys(comparedGameFileIndexes.extra).length;
+
+				if(missingCount > 0 || mismatchCount > 0 || extraCount > 0) {
+					updaterWindow.webContents.send('status-label-update', 'Játék frissítése...');
+					updaterWindow.webContents.send('status-progress-update', 0);
+
+					Debug.log('Updater', 'Purging extra and mismatching game files...');
+					await purgeExtraAndMismatchingGameFiles(comparedGameFileIndexes).catch(reject);
+					Debug.log('Updater', 'Purged extra and mismatching game files');
+
+					Debug.log('Updater', 'Downloading missing and mismatching game files...');
+					await downloadMissingAndMismatchingGameFiles(comparedGameFileIndexes).catch(reject);
+					Debug.log('Updater', 'Downloaded missing and mismatching game files');
+
+					updaterWindow.webContents.send('status-label-update', 'Játék frissítve!');
+					updaterWindow.webContents.send('status-progress-update', 100);
+					updaterWindow.setProgressBar(1);
+					await new Promise(r => setTimeout(r, 800));
+				}
+
+				if (!JavaManager.isJavaReady()) {
+					Debug.log('Updater', 'Java 21 not ready, installing in background...');
+					updaterWindow.webContents.send('status-label-update', 'Java 21 előkészítése...');
+					updaterWindow.webContents.send('status-progress-update', 0);
+					await JavaManager.ensureJava((label, pct) => {
+						try {
+							updaterWindow.webContents.send('status-label-update', label);
+							updaterWindow.webContents.send('status-progress-update', pct);
+							updaterWindow.setProgressBar(pct / 100);
+						} catch (_) {}
+					});
+					updaterWindow.webContents.send('status-label-update', 'Java 21 készen áll!');
+					updaterWindow.webContents.send('status-progress-update', 100);
+					await new Promise(r => setTimeout(r, 500));
+				}
+
+				updaterWindow.removeAllListeners('close');
+				updaterWindow.close();
+
+				resolve();
+			} catch(err) {
+				Debug.log('Updater', `[Error] runGameFilesUpdate failed: ${err}`);
+				reject(err);
+			}
+		};
+
+		let gameUpdateTriggered = false;
+		const triggerGameUpdateOnce = () => {
+			if(gameUpdateTriggered) return;
+			gameUpdateTriggered = true;
+			runGameFilesUpdate();
+		};
+
+		ElectronUpdater.autoUpdater.once('error', (err) => {
+			Debug.log('Updater', `[Warning] Launcher autoUpdater: ${err}`);
+			triggerGameUpdateOnce();
+		});
 
 		ElectronUpdater.autoUpdater.once('update-available', (updateInfo : ElectronUpdater.UpdateInfo) => {
 
@@ -586,62 +690,30 @@ export const update = () => new Promise<void>(async (resolve, reject) => {
     
 				updaterWindow.webContents.send('status-label-update', 'Launcher frissítése...');
 				updaterWindow.webContents.send('status-progress-update', 100);
-				updaterWindow.setProgressBar(1);
-
+				updaterWindow.removeAllListeners('close');
+				updaterWindow.close();
+				Electron.app.removeAllListeners('will-quit');
 				ElectronUpdater.autoUpdater.quitAndInstall(true, true);
+				setTimeout(() => {
+					Electron.app.exit(0);
+				}, 1500);
     
 			});
 
 		});
 
 		ElectronUpdater.autoUpdater.once('update-not-available', async (updateInfo : ElectronUpdater.UpdateInfo) => {
-
 			Debug.log('Updater', `There are no launcher updates available, current version: ${ElectronUpdater.autoUpdater.currentVersion.version}`);
-        
-			updaterWindow.webContents.send('status-label-update', 'Játékfrissítések keresése...');
-			updaterWindow.webContents.send('status-progress-update', 0);
-			updaterWindow.setProgressBar(0);
-            
-			Debug.log('Updater', 'Collecting game files...');
-			const gameFiles = (await collectGameFiles().catch(reject)) as string[];
-			Debug.log('Updater', 'Collected game files');
-
-			Debug.log('Updater', 'Creating game files index...');
-			const gameFilesIndex = (await createGameFilesIndex(gameFiles as string[]).catch(reject)) as GameFilesIndex;
-			Debug.log('Updater', 'Created game files index');
-
-			Debug.log('Updater', 'Fetching the latest game files index...');
-			latestGameFilesIndex = (await fetchLatestGameFilesIndex().catch(reject)) as GameFilesIndex;
-			Debug.log('Updater', 'Fetched the latest game files index');
-
-			Debug.log('Updater', 'Comparing the current game files index with the latest game files index...');
-			const comparedGameFileIndexes = (await compareGameFilesIndexes(gameFilesIndex, latestGameFilesIndex).catch(reject)) as ComparedGameFilesIndexes;
-			Debug.log('Updater', 'Compared the current game files index with the latest game files index:');
-			Debug.log('Updater', `Found ${Object.keys(comparedGameFileIndexes.extra).length} extra, ${Object.keys(comparedGameFileIndexes.missing).length} missing, ${Object.keys(comparedGameFileIndexes.mismatching).length} mismatching and ${Object.keys(comparedGameFileIndexes.matching).length} matching files`);
-
-			updaterWindow.webContents.send('status-label-update', 'Játék frissítése...');
-			updaterWindow.webContents.send('status-progress-update', 0);
-
-			Debug.log('Updater', 'Purging extra and mismatching game files...');
-			await purgeExtraAndMismatchingGameFiles(comparedGameFileIndexes).catch(reject);
-			Debug.log('Updater', 'Purged extra and mismatching game files');
-
-			Debug.log('Updater', 'Downloading missing and mismatching game files...');
-			await downloadMissingAndMismatchingGameFiles(comparedGameFileIndexes).catch(reject);
-			Debug.log('Updater', 'Downloaded missing and mismatching game files');
-
-			updaterWindow.webContents.send('status-label-update', 'Játék frissítése...');
-			updaterWindow.webContents.send('status-progress-update', 100);
-            
-			updaterWindow.removeAllListeners('close');
-			updaterWindow.close();
-
-			resolve();
-
+			triggerGameUpdateOnce();
 		});
 
-		await ElectronUpdater.autoUpdater.checkForUpdates().catch(reject);
-        
+		try {
+			await ElectronUpdater.autoUpdater.checkForUpdates();
+		} catch(err) {
+			Debug.log('Updater', `[Warning] checkForUpdates error: ${err}`);
+			triggerGameUpdateOnce();
+		}
+
 	});
 
 	await updaterWindow.loadFile(path.resolve(__dirname, '../', 'static/', 'updater.html')).catch(reject);

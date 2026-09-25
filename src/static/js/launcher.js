@@ -191,6 +191,23 @@ window.addEventListener('load', function() {
 
 	});
 
+	ipcRenderer.on('tray-game-launching', function() {
+		interactionsDisabled = true;
+		const btn = document.querySelector('*[data-action="launch-game"]');
+		if(btn) {
+			btn.style.cursor = 'wait';
+			btn.style.filter = 'grayscale(100%)';
+		}
+	});
+
+	ipcRenderer.on('trigger-logout', function() {
+		ipcRenderer.send('logout');
+	});
+
+	ipcRenderer.on('switch-screen-tray', function(event, screenName) {
+		switchScreen(screenName);
+	});
+
 	ipcRenderer.send('request-user-data');
 
 });

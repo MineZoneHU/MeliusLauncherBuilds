@@ -7,8 +7,6 @@ import * as CLIArgsParser from './CLIArgsParser';
 
 const DEFAULT_CONFIG = {
 
-	'developerMode': CLIArgsParser.hasOption('developer-mode'),
-
 	'performance.purgeThreads': os.cpus().length * 4,
 	'performance.smallDownloadThreads': os.cpus().length * 3,
 	'performance.largeDownloadThreads': os.cpus().length,
@@ -69,7 +67,7 @@ const saveConfig = () => new Promise<void>((resolve, reject) => {
 
 });
 
-export const get = (key : string, includeDefault  = true) : unknown => {
+export const get = (key : string, includeDefault = true) : unknown => {
 
 	return config[key] ?? (includeDefault ? (DEFAULT_CONFIG[key] ?? null) : null);
 
@@ -83,7 +81,7 @@ export const set = (key : string, val : unknown) => {
     
 };
 
-export const has = (key : string, includeDefault  = true) : boolean => {
+export const has = (key : string, includeDefault = true) : boolean => {
 
 	return config[key] !== undefined || (includeDefault && DEFAULT_CONFIG[key] !== undefined);
 

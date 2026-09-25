@@ -1,8 +1,9 @@
 {
   	"name": "melius-launcher",
-  	"version": "2.0.16",
+  	"version": "2.0.21",
   	"description": "MineZone Launcher",
   	"private": true,
+  	"main": "index.js",
   	"scripts": {
   	  	"start": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js && tsc && electron ./build/index.js",
   	  	"build": "node ./buildtools/purgeBuild.js && node ./buildtools/copyStaticFiles.js && tsc && node ./buildtools/obfuscateBuild.js && node ./buildtools/minifyBuild.js",
@@ -14,6 +15,7 @@
   	  	"distMac": "electron-builder --config electron-builder.json -m -p always",
   	  	"distLinux": "electron-builder --config electron-builder.json -l -p always"
   	},
+  	"author": "MineZone Network",
   	"authors": [
   	  	"LifeGamer <lifegamer.hu@gmail.com>",
   	  	"Adrián Asztrik <adiihsub@gmail.com> (adiih.eu)"
@@ -32,7 +34,8 @@
   	  	"electron-packager": "^17.1.1",
   	  	"eslint": "^8.16.0",
   	  	"html-minifier": "^4.0.0",
-  	  	"javascript-obfuscator": "^4.0.2"
+  	  	"javascript-obfuscator": "^4.0.2",
+  	  	"typescript": "^5.4.5"
   	},
   	"dependencies": {
   	  	"adm-zip": "^0.5.10",

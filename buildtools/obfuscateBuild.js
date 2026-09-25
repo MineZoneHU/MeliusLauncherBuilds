@@ -18,13 +18,33 @@ const collectFiles = (dirPath) => {
 };
 
 const options = {
+	target: 'node',
+	compact: true,
+	controlFlowFlattening: true,
+	controlFlowFlatteningThreshold: 0.8,
 	deadCodeInjection: true,
-	deadCodeInjectionThreshold: 0.75,
-	seed: 0x13371337,
+	deadCodeInjectionThreshold: 0.4,
+	identifierNamesGenerator: 'hexadecimal',
+	numbersToExpressions: true,
+	renameGlobals: false,
+	selfDefending: false,
+	simplify: true,
+	splitStrings: true,
+	splitStringsChunkLength: 6,
 	stringArray: true,
-	stringArrayEncoding: [
-		'base64'
-	]
+	stringArrayCallsTransform: true,
+	stringArrayCallsTransformThreshold: 0.8,
+	stringArrayEncoding: ['rc4', 'base64'],
+	stringArrayIndexShift: true,
+	stringArrayRotate: true,
+	stringArrayShuffle: true,
+	stringArrayWrappersCount: 2,
+	stringArrayWrappersChainedCalls: true,
+	stringArrayWrappersParametersMaxCount: 4,
+	stringArrayWrappersType: 'function',
+	stringArrayThreshold: 0.85,
+	transformObjectKeys: true,
+	unicodeEscapeSequence: false
 };
 
 const ignoredFiles = collectFiles(path.resolve(__dirname, '../', 'build/', 'node_modules/'));

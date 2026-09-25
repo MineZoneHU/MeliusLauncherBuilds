@@ -23,6 +23,6 @@ export const log = (context : string, message : string, saveToFile = true) => {
 	
 	process.stdout.write(recordLines.join(os.EOL) + os.EOL);
 
-	if(saveToFile) logFileWriteStream.write(recordLines.join(os.EOL) + os.EOL);
+	if(saveToFile && logFileWriteStream) logFileWriteStream.write(recordLines.join(os.EOL) + os.EOL);
 	
 };

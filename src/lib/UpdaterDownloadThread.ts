@@ -27,13 +27,14 @@ const downloadNext = () => {
 
 	}
 
-	const nextPath = path.resolve(gameFolder, `./${next}`);
+	const cleanNext = next.replace(/^\/+/, '');
+	const nextPath = path.resolve(gameFolder, cleanNext);
 
 	let currDownloadedSize = 0;
 
 	Axios.default({
 		method: 'GET',
-		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${next}`,
+		url: `${clientCdnURL}/${os.platform()}/${os.arch()}/${cleanNext}`,
 		responseType: 'stream'
 	}).then(res => {
 

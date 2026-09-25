@@ -7,9 +7,10 @@
         "app": "./build/",
         "output": "./dist/"
     },
+    "npmRebuild": false,
     "publish": [{
         "provider": "generic",
-        "url": "localhost"
+        "url": "https://cdn.minezone.hu/launcher/"
     }],
     "nsis": {
         "allowToChangeInstallationDirectory": true,
@@ -47,8 +48,7 @@
                 ]
             }
         ],
-        "forceCodeSigning": true,
-        "cscLink": "./mac_signing.p12"
+        "forceCodeSigning": false
     },
     "linux": {
         "category": "Game",
